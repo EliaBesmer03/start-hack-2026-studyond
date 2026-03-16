@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude
+.claude/
+
+# Node (in case anyone adds dependencies)
+node_modules/
+
+# Environment
+.env
+.env.local
