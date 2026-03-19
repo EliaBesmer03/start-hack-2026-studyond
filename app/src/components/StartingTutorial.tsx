@@ -62,7 +62,7 @@ function buildSteps(onNavigateTimeline: () => void): StepDef[] {
     {
       title: 'Your Task Board',
       description:
-        'Studyond pre-fills your board with the tasks you need at each thesis stage — so you always know what to do next. Click any card to open the feature. You can also add your own custom tasks to keep everything in one place.',
+        'Studyond pre-fills your board with all the tasks you need at each thesis stage — so you always know exactly what to do next. Click any card to open the feature. When you reach the Planning stage, you can build out your individual thesis plan there.',
       getHighlight: () => ({
         top: 56,
         left: sidebarW,
