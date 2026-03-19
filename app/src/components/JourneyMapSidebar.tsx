@@ -54,7 +54,7 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   ],
   planning: [
     { id: 'copilot-literature',   label: 'Literature Review',    description: 'Structure sources and identify research gaps' },
-    { id: 'interview-partners',   label: 'Interview Partners',   description: 'Find and schedule expert interviews' },
+    { id: 'interview-partners',   label: 'Interviews',           description: 'Find and schedule expert interviews' },
     { id: 'thesis-twin',          label: 'Thesis Twin',          description: 'Peer accountability — one student, same stage' },
     { id: 'copilot-data',         label: 'Data Collection',      description: 'Log and track your primary data gathering' },
     { id: 'copilot-analysis',     label: 'Analysis Draft',       description: 'Turn your data into findings with AI review' },
