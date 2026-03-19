@@ -208,6 +208,7 @@ export interface TimelineEntry {
   category: 'milestone' | 'outreach' | 'writing' | 'research' | 'admin'
   week: number        // 1-based week offset from thesis start
   duration: number    // number of weeks
+  notes?: string
 }
 
 export interface SavedLiterature {

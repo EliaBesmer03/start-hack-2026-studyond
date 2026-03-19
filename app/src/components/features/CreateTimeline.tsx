@@ -20,7 +20,6 @@ import type { TimelineEntry } from '@/stores/thesis-store'
 
 const TOTAL_WEEKS = 20
 const WEEK_H = 48
-const COL_W = 160
 const LABEL_W = 88
 
 type Category = TimelineEntry['category']
@@ -152,12 +151,13 @@ function EntryPopup({
   handIn: Date
   anchorTop: number
   anchorLeft: number
-  onUpdate: (id: string, changes: Partial<Pick<TimelineEntry, 'label' | 'category' | 'week' | 'duration'>>) => void
+  onUpdate: (id: string, changes: Partial<Pick<TimelineEntry, 'label' | 'category' | 'week' | 'duration' | 'notes'>>) => void
   onDelete: (id: string) => void
   onClose: () => void
 }) {
   const [label, setLabel] = useState(entry.label)
   const [category, setCategory] = useState<Category>(entry.category)
+  const [notes, setNotes] = useState(entry.notes ?? '')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { inputRef.current?.focus(); inputRef.current?.select() }, [])
@@ -168,7 +168,7 @@ function EntryPopup({
   const handleSave = () => {
     const trimmed = label.trim()
     if (!trimmed) return
-    onUpdate(entry.id, { label: trimmed, category })
+    onUpdate(entry.id, { label: trimmed, category, notes: notes.trim() || undefined })
     onClose()
   }
 
@@ -235,6 +235,19 @@ function EntryPopup({
             </div>
           </div>
 
+          {/* Notes */}
+          <div>
+            <label className="ds-caption mb-1 block text-muted-foreground">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+              placeholder="Add notes, links, reminders…"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 ds-caption text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+            />
+          </div>
+
           {/* Date range (read-only) */}
           <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2">
             <p className="ds-caption text-muted-foreground">
@@ -289,11 +302,12 @@ function NewEntryPopup({
   handIn: Date
   anchorTop: number
   anchorLeft: number
-  onConfirm: (label: string, category: Category) => void
+  onConfirm: (label: string, category: Category, notes: string) => void
   onClose: () => void
 }) {
   const [label, setLabel] = useState('')
   const [cat, setCat] = useState<Category>(category)
+  const [notes, setNotes] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
@@ -306,7 +320,7 @@ function NewEntryPopup({
   const handleConfirm = () => {
     const trimmed = label.trim()
     if (!trimmed) return
-    onConfirm(trimmed, cat)
+    onConfirm(trimmed, cat, notes.trim())
     onClose()
   }
 
@@ -357,6 +371,18 @@ function NewEntryPopup({
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             </div>
+          </div>
+
+          <div>
+            <label className="ds-caption mb-1 block text-muted-foreground">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+              placeholder="Add notes, links, reminders…"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 ds-caption text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+            />
           </div>
 
           <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2">
@@ -511,8 +537,8 @@ function GanttColumn({
   return (
     <div
       ref={colRef}
-      className="relative border-r border-border select-none"
-      style={{ width: COL_W, height: TOTAL_WEEKS * WEEK_H, cursor: 'crosshair' }}
+      className="relative flex-1 border-r border-border select-none"
+      style={{ height: TOTAL_WEEKS * WEEK_H, cursor: 'crosshair' }}
       onMouseDown={onMouseDownCol}
     >
       {/* Grid lines */}
@@ -543,11 +569,17 @@ function GanttColumn({
             onMouseDown={(e) => onMouseDownBlock(e, entry)}
           >
             <div className="flex min-h-0 flex-1 flex-col px-2.5 py-2">
-              <p className="ds-caption font-semibold leading-snug line-clamp-2">{entry.label}</p>
+              <div className="flex items-start gap-1">
+                <p className="ds-caption font-semibold leading-snug line-clamp-2 flex-1">{entry.label}</p>
+                {entry.notes && <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-current opacity-40" title="Has notes" />}
+              </div>
               {height >= WEEK_H * 2 && (
                 <p className="ds-caption mt-1 leading-tight opacity-60">
                   {FMT_SHORT.format(startDate)} – {FMT_SHORT.format(endDate)}
                 </p>
+              )}
+              {height >= WEEK_H * 3 && entry.notes && (
+                <p className="ds-caption mt-1 leading-tight opacity-50 line-clamp-2">{entry.notes}</p>
               )}
             </div>
 
@@ -597,7 +629,7 @@ export function CreateTimeline() {
     setEntries((prev) => prev.map((e) => e.id === id ? { ...e, week, duration } : e))
   }, [])
 
-  const updateEntryFields = useCallback((id: string, changes: Partial<Pick<TimelineEntry, 'label' | 'category' | 'week' | 'duration'>>) => {
+  const updateEntryFields = useCallback((id: string, changes: Partial<Pick<TimelineEntry, 'label' | 'category' | 'week' | 'duration' | 'notes'>>) => {
     setEntries((prev) => prev.map((e) => e.id === id ? { ...e, ...changes } : e))
   }, [])
 
@@ -638,7 +670,7 @@ export function CreateTimeline() {
     setNewPopup({ category, week, duration, anchorTop, anchorLeft })
   }, [])
 
-  const handleConfirmNew = (label: string, category: Category) => {
+  const handleConfirmNew = (label: string, category: Category, notes: string) => {
     if (!newPopup) return
     setEntries((prev) => [...prev, {
       id: String(idCounter.current++),
@@ -646,6 +678,7 @@ export function CreateTimeline() {
       category,
       week: newPopup.week,
       duration: newPopup.duration,
+      notes: notes || undefined,
     }])
   }
 
@@ -749,8 +782,8 @@ export function CreateTimeline() {
       </div>
 
       {/* Timeline grid */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-background">
-        <div style={{ minWidth: LABEL_W + CATEGORIES.length * COL_W + 1 }}>
+      <div className="rounded-xl border border-border bg-background">
+        <div className="w-full">
 
           {/* Sticky column headers */}
           <div className="flex border-b border-border bg-secondary/50" style={{ position: 'sticky', top: 0, zIndex: 20 }}>
@@ -762,8 +795,7 @@ export function CreateTimeline() {
               return (
                 <div
                   key={cat}
-                  className={`flex shrink-0 items-center justify-center gap-2 border-r border-border py-3 ${meta.headerBg}`}
-                  style={{ width: COL_W }}
+                  className={`flex flex-1 items-center justify-center gap-2 border-r border-border py-3 ${meta.headerBg}`}
                 >
                   <span className={cat === 'milestone' ? 'text-foreground' : 'text-muted-foreground'}>{meta.icon}</span>
                   <span className={`ds-label ${cat === 'milestone' ? 'text-foreground' : 'text-muted-foreground'}`}>{meta.label}</span>
