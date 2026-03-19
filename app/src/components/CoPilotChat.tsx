@@ -174,6 +174,9 @@ interface CoPilotChatProps {
   starterPrompt?: string | null
 }
 
+const MIN_WIDTH = 300
+const MAX_WIDTH = 700
+
 export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
   const {
     profile, chatHistories, knowledgeFacts, thesisNotes, universityGuidelines,
@@ -181,6 +184,27 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     favouriteTopicIds, shortlistedSupervisorIds, acceptedExpertIds,
     finalDecision, timeline, tasks,
   } = useThesisStore()
+
+  const [panelWidth, setPanelWidth] = useState(380)
+  const resizeDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    resizeDragRef.current = { startX: e.clientX, startWidth: panelWidth }
+    const onMove = (ev: MouseEvent) => {
+      if (!resizeDragRef.current) return
+      const dx = resizeDragRef.current.startX - ev.clientX
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, resizeDragRef.current.startWidth + dx))
+      setPanelWidth(newWidth)
+    }
+    const onUp = () => {
+      resizeDragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [panelWidth])
   const stage = profile.stage
   const currentStage: ThesisStage = (stage ?? 'orientation') as ThesisStage
   const concern = profile.concern
@@ -332,8 +356,15 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '100%', opacity: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex h-full w-[380px] shrink-0 flex-col border-l border-border bg-background"
+      className="relative flex h-full shrink-0 flex-col border-l border-border bg-background"
+      style={{ width: panelWidth }}
     >
+      {/* Resize handle */}
+      <div
+        onMouseDown={onResizeMouseDown}
+        className="absolute left-0 top-0 h-full w-1 cursor-col-resize hover:bg-foreground/10 transition-colors"
+        title="Drag to resize"
+      />
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2.5">

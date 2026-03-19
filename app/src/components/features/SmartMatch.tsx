@@ -14,7 +14,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Building2, GraduationCap, Check, X, Bookmark,
-  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles,
+  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Users,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -141,8 +141,11 @@ function MatchCardView({
   const [saveFlash, setSaveFlash] = useState(false)
   const { topic, supervisor, company, score, reasons } = card
 
-  const expertId = topic.expertIds[0]
-  const expert = expertId ? experts.find((e) => e.id === expertId) : null
+  const topicExperts = topic.expertIds
+    .map((id) => experts.find((e) => e.id === id))
+    .filter(Boolean) as typeof experts
+  const shownExperts = topicExperts.slice(0, 2)
+  const remainingCount = topicExperts.length - shownExperts.length
 
   const handleShortlist = () => {
     onAction(card.id, 'shortlisted')
@@ -253,19 +256,31 @@ function MatchCardView({
         </div>
       </div>
 
-      {/* Expert contact */}
-      {expert && (
+      {/* Expert contacts */}
+      {shownExperts.length > 0 && (
         <div className="border-t border-border bg-secondary/40 px-5 py-3">
-          <p className="ds-caption flex items-center gap-1.5 text-muted-foreground">
-            <Briefcase className="size-3" />
-            <span className="font-medium text-foreground">{expert.firstName} {expert.lastName}</span>
-            · {expert.title} at {companyName(expert.companyId)}
-            {expert.offerInterviews && (
-              <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 ds-badge font-medium text-foreground">
-                Offers interviews
-              </span>
-            )}
+          <p className="ds-caption mb-2 flex items-center gap-1.5 uppercase tracking-[0.12em] text-muted-foreground">
+            <Users className="size-3" />
+            {topicExperts.length} interview expert{topicExperts.length !== 1 ? 's' : ''} available
           </p>
+          <div className="flex flex-col gap-1.5">
+            {shownExperts.map((expert) => (
+              <p key={expert.id} className="ds-caption flex items-center gap-1.5 text-muted-foreground">
+                <span className="font-medium text-foreground">{expert.firstName} {expert.lastName}</span>
+                · {expert.title} at {companyName(expert.companyId)}
+                {expert.offerInterviews && (
+                  <span className="rounded-full bg-secondary px-1.5 py-0.5 ds-badge font-medium text-foreground">
+                    Interviews
+                  </span>
+                )}
+              </p>
+            ))}
+            {remainingCount > 0 && (
+              <p className="ds-caption text-muted-foreground/60">
+                +{remainingCount} more expert{remainingCount !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -352,8 +367,10 @@ function MatchCardView({
 export function SmartMatch() {
   const {
     profile, addAcceptedExpert, favouriteTopicIds,
-    shortlistedSupervisorIds, toggleSavedMatch, savedMatchIds,
+    shortlistedSupervisorIds, toggleSavedMatch, savedMatchIds, completeFeature, tasks,
   } = useThesisStore()
+
+  const isDone = tasks.some((t) => t.featureId === 'topic-match' && t.status === 'done')
 
   // Build match cards: favourite topics × shortlisted supervisors first, then AI recs
   const cards = useMemo<MatchCard[]>(() => {
@@ -479,8 +496,26 @@ export function SmartMatch() {
         </div>
       </div>
 
+      {/* Mark as done */}
+      <div className="mt-4">
+        {isDone ? (
+          <span className="ds-caption inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
+            <Check className="size-3.5" strokeWidth={2.5} />
+            Marked as done
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => completeFeature('topic-match')}
+            className="ds-caption rounded-full border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            Mark as done
+          </button>
+        )}
+      </div>
+
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-xl bg-secondary p-1">
+      <div className="mb-6 mt-5 flex gap-1 rounded-xl bg-secondary p-1">
         {(['matches', 'shortlisted'] as const).map((t) => (
           <button
             key={t}

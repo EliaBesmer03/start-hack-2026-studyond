@@ -358,7 +358,13 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
   const [openSupervisor, setOpenSupervisor] = useState<Supervisor | null>(null)
 
   const shortlisted = new Set(shortlistedSupervisorIds)
-  const toggleShortlist = (id: string) => toggleShortlistedSupervisor(id)
+
+  const toggleShortlist = (id: string) => {
+    toggleShortlistedSupervisor(id)
+    // Complete feature when 3 supervisors are shortlisted
+    const newSize = shortlisted.has(id) ? shortlisted.size - 1 : shortlisted.size + 1
+    if (newSize === 3) completeFeature('supervisor-search')
+  }
 
   const pool = tab === 'shortlisted'
     ? supervisors.filter((s) => shortlisted.has(s.id))

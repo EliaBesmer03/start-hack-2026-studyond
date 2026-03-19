@@ -13,7 +13,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check, Calendar, Plus, X,
-  Mail, PenLine, BookOpen, FlaskConical, Flag, RotateCcw,
+  Mail, PenLine, BookOpen, FlaskConical, Flag, RotateCcw, ChevronDown,
 } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { TimelineEntry } from '@/stores/thesis-store'
@@ -272,6 +272,8 @@ export function CreateTimeline() {
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridWidth, setGridWidth] = useState(800)
   const idCounter = useRef(200)
+  const [customLabel, setCustomLabel] = useState('')
+  const [customCategory, setCustomCategory] = useState<Category>('research')
 
   // Measure grid width
   useEffect(() => {
@@ -314,6 +316,13 @@ export function CreateTimeline() {
     }
     setEntries((prev) => pushNeighbours([...prev, newEntry], newEntry.id, item.category))
     setSaved(false)
+  }
+
+  const addCustomItem = () => {
+    const label = customLabel.trim()
+    if (!label) return
+    addFromPalette({ label, category: customCategory, duration: 1 })
+    setCustomLabel('')
   }
 
   const resetToDefault = () => {
@@ -372,6 +381,39 @@ export function CreateTimeline() {
               </button>
             )
           })}
+        </div>
+
+        {/* Custom element input */}
+        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+          <input
+            type="text"
+            value={customLabel}
+            onChange={(e) => setCustomLabel(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addCustomItem()}
+            placeholder="Add custom element…"
+            className="ds-caption min-w-0 flex-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+          />
+          <div className="relative">
+            <select
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value as Category)}
+              className="ds-caption appearance-none rounded-lg border border-border bg-secondary py-1.5 pl-3 pr-7 text-foreground focus:border-foreground/30 focus:outline-none"
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>{CATEGORY_META[cat].label}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+          </div>
+          <button
+            type="button"
+            onClick={addCustomItem}
+            disabled={!customLabel.trim()}
+            className="flex items-center gap-1 rounded-lg border border-border bg-foreground px-3 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
+          >
+            <Plus className="size-3" />
+            Add
+          </button>
         </div>
       </div>
 

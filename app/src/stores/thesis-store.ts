@@ -89,8 +89,8 @@ const DEFAULT_TASKS: Task[] = [
     id: 't4',
     stageId: 'topic-discovery',
     title: 'Review Your Smart Matches',
-    description: 'Accept, skip, or save bundled topic + supervisor + company matches curated for you.',
-    featureId: 'smart-match',
+    description: 'Shortlist bundled topic + supervisor + company matches curated for you.',
+    featureId: 'topic-match',
     status: 'ready',
   },
   {

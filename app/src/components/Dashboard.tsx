@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Menu, X, Sparkles, BookOpen, RotateCcw, ChevronRight } from 'lucide-react'
+import { Menu, X, Sparkles, BookOpen, RotateCcw, ChevronRight, Check } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { ThesisStage } from '@/types/thesis'
-import { JourneyMapSidebar } from '@/components/JourneyMapSidebar'
+import { JourneyMapSidebar, ORDERED_FEATURES } from '@/components/JourneyMapSidebar'
 import type { FeatureId } from '@/components/JourneyMapSidebar'
 import { ThesisBoard } from '@/components/ThesisBoard'
 import { CoPilotChat } from '@/components/CoPilotChat'
@@ -197,7 +197,6 @@ const FEATURE_LABELS: Record<FeatureId, string> = {
   'profile-setup':     'Thesis Profile',
   'topic-explore':     'Explore Topics',
   'topic-match':       'Smart Match',
-  'smart-match':       'Review Matches',
   'supervisor-search': 'Find Supervisors',
   'final-decision':    'Final Decision',
   'create-timeline':   'Create Timeline',
@@ -219,7 +218,7 @@ function FeaturePane({
   featureId: FeatureId
   onOpenCoPilot: (prompt?: string) => void
 }) {
-  if (featureId === 'topic-match' || featureId === 'smart-match') return <SmartMatch />
+  if (featureId === 'topic-match') return <SmartMatch />
   if (featureId === 'interview-partners') return <InterviewPartners />
   if (featureId === 'thesis-twin') return <ThesisTwin />
   if (featureId === 'draft-reader') return <DraftReader />
@@ -311,8 +310,21 @@ export function Dashboard() {
     if (chatOpen) setGuidelinesOpen(false)
   }, [chatOpen])
 
-  const { profile } = useThesisStore()
+  const { profile, tasks } = useThesisStore()
   const currentStageId = profile.stage ?? 'orientation'
+
+  // Check if the active feature's task is done
+  const isActiveFeatureDone = activeFeature
+    ? tasks.some((t) => t.featureId === activeFeature && t.status === 'done')
+    : false
+
+  // Next feature in the ordered list
+  const nextFeatureId = activeFeature
+    ? (() => {
+        const idx = ORDERED_FEATURES.indexOf(activeFeature)
+        return idx >= 0 && idx < ORDERED_FEATURES.length - 1 ? ORDERED_FEATURES[idx + 1] : null
+      })()
+    : null
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
@@ -452,6 +464,38 @@ export function Dashboard() {
                   Board
                 </button>
                 <FeaturePane featureId={activeFeature} onOpenCoPilot={openCoPilot} />
+
+                {/* Post-completion navigation */}
+                {isActiveFeatureDone && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="mt-8 flex items-center gap-3 rounded-xl border border-border bg-secondary/50 px-5 py-4"
+                  >
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground">
+                      <Check className="size-3.5 text-background" strokeWidth={2.5} />
+                    </span>
+                    <p className="ds-label flex-1 text-foreground">Step complete</p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveFeature(null)}
+                      className="ds-caption rounded-full border border-border px-4 py-2 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                    >
+                      Go back to board
+                    </button>
+                    {nextFeatureId && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveFeature(nextFeatureId)}
+                        className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-background transition-colors hover:bg-foreground/80"
+                      >
+                        Go to next step
+                        <ChevronRight className="size-3.5" />
+                      </button>
+                    )}
+                  </motion.div>
+                )}
               </div>
             )}
           </main>

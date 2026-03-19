@@ -11,7 +11,6 @@ export type FeatureId =
   | 'topic-explore'
   | 'profile-setup'
   | 'topic-match'
-  | 'smart-match'
   | 'supervisor-search'
   | 'final-decision'
   | 'create-timeline'
@@ -35,9 +34,8 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
     { id: 'topic-explore',   label: 'Explore Topics',   description: 'Browse curated topics and company briefs' },
   ],
   'topic-discovery': [
-    { id: 'topic-match',       label: 'Smart Match',       description: 'Bookmark topics and build AI-matched combos' },
+    { id: 'topic-match',       label: 'Smart Match',       description: 'AI-matched topic + supervisor + company combos' },
     { id: 'supervisor-search', label: 'Find Supervisors',  description: 'Shortlist up to 3 supervisors for Smart Match' },
-    { id: 'smart-match',       label: 'Review Matches',    description: 'Bundled topic + supervisor + company matches' },
     { id: 'final-decision',    label: 'Final Decision',    description: 'Commit to your final topic/supervisor/company combo' },
   ],
   'supervisor-search': [
@@ -55,6 +53,11 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
     { id: 'thesis-alumni', label: 'Alumni Profile', description: 'Leave feedback and be there for the next student' },
   ],
 }
+
+/** Flat ordered list of all feature IDs across stages */
+export const ORDERED_FEATURES: FeatureId[] = (
+  Object.values(STAGE_FEATURES) as FeatureItem[][]
+).flat().map((f) => f.id)
 
 const STAGE_TIME: Record<ThesisStage, string> = {
   orientation:         '1–2 weeks',

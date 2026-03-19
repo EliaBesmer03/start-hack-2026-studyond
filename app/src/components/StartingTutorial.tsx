@@ -44,9 +44,9 @@ function buildSteps(onNavigateTimeline: () => void): StepDef[] {
 
     /* ── 2: Co-Pilot button ── */
     {
-      title: 'Co-Pilot — Coming Soon',
+      title: 'Your AI Co-Pilot',
       description:
-        'Your AI study companion lives in the top-right corner. Once available, click Co-Pilot to get personalised, stage-specific guidance — from drafting outreach emails to structuring your thesis proposal.',
+        'Your AI thesis companion lives in the top-right corner. Click Co-Pilot anytime to get personalised, stage-specific guidance — from drafting outreach emails to structuring your thesis proposal. It also remembers key facts about you across conversations.',
       getHighlight: () => {
         const el = document.querySelector('[data-tutorial="copilot"]') as HTMLElement | null
         if (el) {
