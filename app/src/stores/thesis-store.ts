@@ -362,7 +362,6 @@ export const useThesisStore = create<ThesisState>()(
           finalDecision: null,
           timeline: [],
           savedLiterature: [],
-          savedLiterature: [],
         }),
       completeFeature: (featureId) =>
         set((s) => {
