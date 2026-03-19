@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, GraduationCap, Building2, Bookmark, Sparkles, ChevronDown, ChevronUp, Send } from 'lucide-react'
+import { Check, GraduationCap, Building2, Bookmark, Sparkles, ChevronDown, ChevronUp, Send, PenLine } from 'lucide-react'
 import { topics, supervisors, companies, fieldName } from '@/data/mock'
 
 const uniLogoSrc = (universityId: string) =>
@@ -19,11 +19,13 @@ import type { FinalDecision as FinalDecisionType } from '@/stores/thesis-store'
 export function FinalDecision() {
   const {
     favouriteTopicIds, shortlistedSupervisorIds, savedMatchIds,
-    finalDecision, setFinalDecision, completeFeature,
+    finalDecision, setFinalDecision, completeFeature, uncompleteFeature,
   } = useThesisStore()
   const [introSent, setIntroSent] = useState(false)
 
   const [selectedTopicId, setSelectedTopicId] = useState<string>(finalDecision?.topicId ?? '')
+  const [customTopicTitle, setCustomTopicTitle] = useState<string>('')
+  const [useCustomTopic, setUseCustomTopic] = useState(false)
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<string>(finalDecision?.supervisorId ?? '')
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(finalDecision?.companyId ?? null)
   const [confirmed, setConfirmed] = useState(!!finalDecision)
@@ -68,12 +70,12 @@ export function FinalDecision() {
     ? [companies.find((c) => c.id === selectedTopic.companyId)].filter(Boolean) as typeof companies
     : companies.slice(0, 4)
 
-  const canConfirm = !!selectedTopicId && !!selectedSupervisorId
+  const canConfirm = (useCustomTopic ? customTopicTitle.trim().length > 4 : !!selectedTopicId) && !!selectedSupervisorId
 
   const handleConfirm = () => {
     if (!canConfirm) return
     const decision: FinalDecisionType = {
-      topicId: selectedTopicId,
+      topicId: useCustomTopic ? `custom:${customTopicTitle.trim()}` : selectedTopicId,
       supervisorId: selectedSupervisorId,
       companyId: selectedCompanyId,
     }
@@ -85,7 +87,9 @@ export function FinalDecision() {
   }
 
   if (confirmed && finalDecision) {
-    const topic = topics.find((t) => t.id === finalDecision.topicId)
+    const isCustomTopic = finalDecision.topicId.startsWith('custom:')
+    const customTitle = isCustomTopic ? finalDecision.topicId.replace('custom:', '') : null
+    const topic = isCustomTopic ? null : topics.find((t) => t.id === finalDecision.topicId)
     const supervisor = supervisors.find((s) => s.id === finalDecision.supervisorId)
     const company = finalDecision.companyId ? companies.find((c) => c.id === finalDecision.companyId) : null
 
@@ -119,7 +123,13 @@ export function FinalDecision() {
                   <Sparkles className="size-3" />
                   Topic
                 </p>
-                <p className="ds-title-sm text-foreground">{topic?.title}</p>
+                <p className="ds-title-sm text-foreground">{customTitle ?? topic?.title}</p>
+                {customTitle && (
+                  <span className="ds-caption mt-1 inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+                    <PenLine className="size-3" />
+                    Self-proposed topic
+                  </span>
+                )}
                 {topic && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {topic.fieldIds.slice(0, 3).map((fid) => (
@@ -216,7 +226,7 @@ export function FinalDecision() {
           <div className="px-5 pb-4 border-border">
             <button
               type="button"
-              onClick={() => { setConfirmed(false); setIntroSent(false); setTopicOpen(true); setSupervisorOpen(true) }}
+              onClick={() => { uncompleteFeature('final-decision'); setConfirmed(false); setIntroSent(false); setTopicOpen(true); setSupervisorOpen(true) }}
               className="ds-caption text-muted-foreground hover:text-foreground transition-colors"
             >
               Change decision →
@@ -263,14 +273,16 @@ export function FinalDecision() {
             className="flex w-full items-center justify-between px-5 py-4 hover:bg-secondary/40 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ds-badge font-semibold ${selectedTopicId ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground'}`}>
-                {selectedTopicId ? <Check className="size-3" strokeWidth={2.5} /> : '1'}
+              <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ds-badge font-semibold ${(selectedTopicId || (useCustomTopic && customTopicTitle.trim().length > 4)) ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground'}`}>
+                {(selectedTopicId || (useCustomTopic && customTopicTitle.trim().length > 4)) ? <Check className="size-3" strokeWidth={2.5} /> : '1'}
               </span>
               <div className="text-left">
                 <p className="ds-label text-foreground">Choose Topic</p>
-                {selectedTopic && (
+                {useCustomTopic && customTopicTitle.trim() ? (
+                  <p className="ds-caption text-muted-foreground line-clamp-1">{customTopicTitle.trim()}</p>
+                ) : selectedTopic ? (
                   <p className="ds-caption text-muted-foreground line-clamp-1">{selectedTopic.title}</p>
-                )}
+                ) : null}
               </div>
             </div>
             {topicOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -286,7 +298,7 @@ export function FinalDecision() {
                 className="overflow-hidden border-t border-border"
               >
                 <div className="divide-y divide-border">
-                  {topicOptions.map((t) => (
+                  {!useCustomTopic && topicOptions.map((t) => (
                     <button
                       key={t.id}
                       type="button"
@@ -319,6 +331,52 @@ export function FinalDecision() {
                       )}
                     </button>
                   ))}
+
+                  {/* Self-proposed topic option */}
+                  {useCustomTopic ? (
+                    <div className="px-5 py-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <PenLine className="size-4 text-muted-foreground" />
+                        <p className="ds-label text-foreground">Propose your own topic</p>
+                        <button
+                          type="button"
+                          onClick={() => { setUseCustomTopic(false); setCustomTopicTitle('') }}
+                          className="ml-auto ds-caption text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Back to list
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g. ESG Reporting Practices in Swiss SMEs"
+                        value={customTopicTitle}
+                        onChange={(e) => setCustomTopicTitle(e.target.value)}
+                        autoFocus
+                        className="w-full rounded-xl border border-border px-4 py-2.5 ds-body text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+                      />
+                      {customTopicTitle.trim().length > 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setTopicOpen(false)}
+                          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2 ds-label text-background transition-colors hover:bg-foreground/80"
+                        >
+                          <Check className="size-4" />
+                          Use this topic
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setUseCustomTopic(true); setSelectedTopicId('') }}
+                      className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/40"
+                    >
+                      <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-border">
+                        <PenLine className="size-2.5" />
+                      </span>
+                      <p className="ds-label text-muted-foreground">Propose your own topic…</p>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}

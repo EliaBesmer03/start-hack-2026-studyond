@@ -585,7 +585,7 @@ function TranscriptionSection() {
 // ── Main component ────────────────────────────────────────────────────
 
 export function InterviewPartners() {
-  const { completeFeature, acceptedExpertIds } = useThesisStore()
+  const { completeFeature, addAcceptedExpert, acceptedExpertIds } = useThesisStore()
   const [step, setStep] = useState(1)
   const [answers, setAnswers] = useState<Answers>({ topic: '', expertise: '', format: null })
   const [results, setResults] = useState<{ expert: Expert; score: number }[] | null>(null)
@@ -618,6 +618,7 @@ export function InterviewPartners() {
     step === 3 ? answers.format !== null : false
 
   const handleConnect = (id: string) => {
+    addAcceptedExpert(id)
     completeFeature('interview-partners')
     setSent((prev) => new Set([...prev, id]))
   }

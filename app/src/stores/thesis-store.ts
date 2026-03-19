@@ -58,15 +58,6 @@ const DEFAULT_TASKS: Task[] = [
     featureId: 'intelligence-survey',
     status: 'ready',
   },
-  {
-    id: 'o2',
-    stageId: 'orientation',
-    title: 'Browse 3+ Topic Areas',
-    description: 'Explore curated company briefs and academic directions that match your profile.',
-    featureId: 'topic-explore',
-    status: 'ready',
-  },
-
   // ── Topic & Supervisor ───────────────────────────────────────────
   {
     id: 't1',
@@ -83,15 +74,6 @@ const DEFAULT_TASKS: Task[] = [
     description: 'Search professors aligned with your research direction and shortlist up to 3.',
     featureId: 'supervisor-search',
     status: 'ready',
-  },
-  {
-    id: 't3',
-    stageId: 'topic-discovery',
-    title: 'Send First Supervisor Outreach',
-    description: 'Draft and send a personalised email — Co-Pilot can help you write it.',
-    featureId: 'supervisor-search',
-    status: 'ready',
-    nudge: 'Outreach sent over 2 weeks ago with no reply — want Co-Pilot to help you follow up?',
   },
   {
     id: 't4',
@@ -259,6 +241,7 @@ interface ThesisState {
   celebrateStage: ThesisStage | null
   favouriteTopicIds: string[]
   acceptedExpertIds: string[]
+  acceptedTwinId: string | null
   shortlistedSupervisorIds: string[]
   savedMatchIds: string[]
   finalDecision: FinalDecision | null
@@ -287,6 +270,7 @@ interface ThesisState {
   clearCelebration: () => void
   toggleFavouriteTopic: (topicId: string) => void
   addAcceptedExpert: (expertId: string) => void
+  setAcceptedTwin: (twinId: string | null) => void
   toggleShortlistedSupervisor: (supervisorId: string) => void
   toggleSavedMatch: (matchId: string) => void
   setFinalDecision: (decision: FinalDecision) => void
@@ -319,6 +303,7 @@ export const useThesisStore = create<ThesisState>()(
       celebrateStage: null,
       favouriteTopicIds: [],
       acceptedExpertIds: [],
+      acceptedTwinId: null,
       shortlistedSupervisorIds: [],
       savedMatchIds: [],
       finalDecision: null,
@@ -358,6 +343,7 @@ export const useThesisStore = create<ThesisState>()(
           celebrateStage: null,
           favouriteTopicIds: [],
           acceptedExpertIds: [],
+          acceptedTwinId: null,
           shortlistedSupervisorIds: [],
           savedMatchIds: [],
           finalDecision: null,
@@ -392,7 +378,7 @@ export const useThesisStore = create<ThesisState>()(
       uncompleteFeature: (featureId) =>
         set((s) => ({
           tasks: s.tasks.map((t) =>
-            t.featureId === featureId && t.status === 'done' ? { ...t, status: 'pending' as TaskStatus } : t,
+            t.featureId === featureId && t.status === 'done' ? { ...t, status: 'ready' as TaskStatus } : t,
           ),
         })),
       updateTaskStatus: (taskId, status) =>
@@ -459,6 +445,8 @@ export const useThesisStore = create<ThesisState>()(
             ? s.acceptedExpertIds
             : [...s.acceptedExpertIds, expertId],
         })),
+      setAcceptedTwin: (twinId) =>
+        set({ acceptedTwinId: twinId }),
       toggleShortlistedSupervisor: (supervisorId) =>
         set((s) => {
           const ids = s.shortlistedSupervisorIds

@@ -52,6 +52,92 @@ const STAGE_COMPLETE_COPY: Record<ThesisStage, { title: string; next: string; st
   },
 }
 
+function FinalCongratulations({ onDismiss }: { onDismiss: () => void }) {
+  const { profile, tasks } = useThesisStore()
+  const firstName = profile.name?.split(' ')[0] ?? null
+  const doneTasks = tasks.filter((t) => t.status === 'done').length
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center overflow-y-auto bg-background px-6 py-12"
+    >
+      {/* Glow accent */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="size-[600px] rounded-full bg-ai opacity-[0.06] blur-3xl" />
+      </div>
+
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 24 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}
+        className="relative mx-auto w-full max-w-lg text-center"
+      >
+        {/* Icon */}
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
+          className="mb-8 flex justify-center"
+        >
+          <div className="flex size-24 items-center justify-center rounded-full bg-foreground shadow-2xl">
+            <span className="text-5xl">🎓</span>
+          </div>
+        </motion.div>
+
+        {/* Heading */}
+        <h1 className="ds-title-xl text-foreground">
+          {firstName ? `Congratulations, ${firstName}!` : 'Congratulations!'}
+        </h1>
+        <p className="ds-body mt-3 text-muted-foreground leading-relaxed">
+          You've completed your entire thesis journey with Studyond —
+          from your first profile setup to the final writing stage.
+          That's no small feat.
+        </p>
+
+        {/* Stats */}
+        <div className="mt-8 grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border bg-background px-5 py-4">
+            <p className="ds-title-md text-foreground">{doneTasks}</p>
+            <p className="ds-caption mt-0.5 text-muted-foreground">tasks completed</p>
+          </div>
+          <div className="rounded-xl border border-border bg-background px-5 py-4">
+            <p className="ds-title-md text-foreground">5</p>
+            <p className="ds-caption mt-0.5 text-muted-foreground">stages unlocked</p>
+          </div>
+        </div>
+
+        {/* Message */}
+        <div className="mt-6 rounded-xl border border-border bg-secondary/40 px-5 py-4 text-left">
+          <p className="ds-label text-foreground">What's next?</p>
+          <p className="ds-body mt-1 text-muted-foreground leading-relaxed">
+            Complete your alumni profile to help future students who research the same topic or supervisor.
+            Your experience is valuable — pay it forward.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-8 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-6 py-4 ds-label text-background transition-all hover:bg-foreground/80"
+          >
+            <Check className="size-4" />
+            Back to board
+          </button>
+          <p className="ds-caption text-muted-foreground">
+            Your progress is saved. You can always revisit any feature from the board.
+          </p>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 function StageCelebration({
   stage,
   onDismiss,
@@ -62,7 +148,6 @@ function StageCelebration({
   onOpenCoPilot: (prompt: string) => void
 }) {
   const copy = STAGE_COMPLETE_COPY[stage]
-  const isLast = stage === 'execution-writing'
 
   return (
     <motion.div
@@ -82,34 +167,23 @@ function StageCelebration({
       >
         <div className="mb-4 flex justify-center">
           <div className="flex size-14 items-center justify-center rounded-full bg-foreground">
-            {isLast
-              ? <span className="text-2xl">🎓</span>
-              : <Check className="size-7 text-background" strokeWidth={2.5} />}
+            <Check className="size-7 text-background" strokeWidth={2.5} />
           </div>
         </div>
         <h2 className="ds-title-md text-foreground">{copy.title}</h2>
-        {!isLast && (
-          <p className="ds-body mt-2 text-muted-foreground">
-            Moving to <span className="font-medium text-foreground">{copy.next}</span> — your board has updated.
-          </p>
-        )}
-        {isLast && (
-          <p className="ds-body mt-2 text-muted-foreground">
-            Congratulations on completing your thesis journey with Studyond!
-          </p>
-        )}
+        <p className="ds-body mt-2 text-muted-foreground">
+          Moving to <span className="font-medium text-foreground">{copy.next}</span> — your board has updated.
+        </p>
 
         <div className="mt-6 flex flex-col gap-2">
-          {!isLast && (
-            <button
-              type="button"
-              onClick={() => { onDismiss(); onOpenCoPilot(copy.starterPrompt) }}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
-            >
-              <Sparkles className="size-4" />
-              Open Co-Pilot for {copy.next}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => { onDismiss(); onOpenCoPilot(copy.starterPrompt) }}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
+          >
+            <Sparkles className="size-4" />
+            Open Co-Pilot for {copy.next}
+          </button>
           <button
             type="button"
             onClick={onDismiss}
@@ -375,12 +449,18 @@ export function Dashboard() {
 
       {/* Stage completion celebration overlay */}
       <AnimatePresence>
-        {celebrateStage && (
+        {celebrateStage === 'execution-writing' && (
+          <FinalCongratulations
+            onDismiss={() => { clearCelebration(); setActiveFeature(null) }}
+          />
+        )}
+        {celebrateStage && celebrateStage !== 'execution-writing' && (
           <StageCelebration
             stage={celebrateStage}
-            onDismiss={clearCelebration}
+            onDismiss={() => { clearCelebration(); setActiveFeature(null) }}
             onOpenCoPilot={(prompt) => {
               clearCelebration()
+              setActiveFeature(null)
               openCoPilot(prompt)
             }}
           />

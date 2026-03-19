@@ -7,8 +7,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Bookmark, ChevronRight, GraduationCap, Mail, MessageSquare,
-  Search, Send, Users, X,
+  Bookmark, Check, ChevronRight, GraduationCap, Mail, MessageSquare,
+  RotateCcw, Search, Send, Users, X,
 } from 'lucide-react'
 import {
   supervisors, students, projects, topics, fieldName, byId,
@@ -358,7 +358,8 @@ function SupervisorDrawer({
 // ── Main component ────────────────────────────────────────────────────
 
 export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
-  const { completeFeature, shortlistedSupervisorIds, toggleShortlistedSupervisor } = useThesisStore()
+  const { completeFeature, uncompleteFeature, tasks, shortlistedSupervisorIds, toggleShortlistedSupervisor } = useThesisStore()
+  const isDone = tasks.some((t) => t.featureId === 'supervisor-search' && t.status === 'done')
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<'all' | 'shortlisted'>('all')
   const [openSupervisor, setOpenSupervisor] = useState<Supervisor | null>(null)
@@ -464,6 +465,37 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
           ))}
         </div>
       )}
+
+      {/* Manual mark-as-done */}
+      <div className="mt-6 border-t border-border pt-5">
+        {isDone ? (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
+                <Check className="size-3" strokeWidth={2.5} />
+              </span>
+              <p className="ds-label text-foreground">Marked as complete</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => uncompleteFeature('supervisor-search')}
+              className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Undo
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => completeFeature('supervisor-search')}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+          >
+            <Check className="size-4" />
+            Mark this step as done
+          </button>
+        )}
+      </div>
 
       {/* Detail drawer */}
       <AnimatePresence>

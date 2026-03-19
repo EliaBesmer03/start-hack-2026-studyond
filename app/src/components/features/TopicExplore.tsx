@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2, GraduationCap, MapPin, BadgeCheck, Search, Bookmark,
-  CheckCircle2, X, Briefcase, Mail, ExternalLink, ChevronRight,
+  CheckCircle2, X, Briefcase, Mail, ExternalLink, ChevronRight, Check, RotateCcw,
 } from 'lucide-react'
 import {
   topics, companies, experts, supervisors, fields,
@@ -392,7 +392,7 @@ function TopicDrawer({
 // ── Main component ────────────────────────────────────────────────────
 
 export function TopicExplore({ onOpenCoPilot }: TopicExploreProps) {
-  const { completeFeature, favouriteTopicIds, toggleFavouriteTopic, tasks } = useThesisStore()
+  const { completeFeature, uncompleteFeature, favouriteTopicIds, toggleFavouriteTopic, tasks } = useThesisStore()
   const [selectedField, setSelectedField] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [openTopic, setOpenTopic] = useState<Topic | null>(null)
@@ -429,23 +429,32 @@ export function TopicExplore({ onOpenCoPilot }: TopicExploreProps) {
       </div>
 
       {/* Mark as done */}
-      <div className="mb-5 flex items-center justify-between rounded-xl border border-border bg-secondary/40 px-4 py-3">
-        <p className="ds-small text-muted-foreground">
-          Explored enough topics? Mark this step as complete to move forward.
-        </p>
+      <div className="mb-5 border-b border-border pb-5">
         {isDone ? (
-          <span className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
-            <CheckCircle2 className="size-3.5" />
-            Done
-          </span>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
+                <Check className="size-3" strokeWidth={2.5} />
+              </span>
+              <p className="ds-label text-foreground">Marked as complete</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => uncompleteFeature('topic-explore')}
+              className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Undo
+            </button>
+          </div>
         ) : (
           <button
             type="button"
             onClick={() => completeFeature('topic-explore')}
-            className="ds-caption flex shrink-0 items-center gap-1.5 rounded-full border border-foreground/30 px-3 py-1.5 text-foreground transition-colors hover:bg-foreground hover:text-background"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
           >
-            <CheckCircle2 className="size-3.5" />
-            Mark as done
+            <Check className="size-4" />
+            Mark this step as done
           </button>
         )}
       </div>

@@ -510,8 +510,8 @@ function SharedSpace({ twin, onCancel }: { twin: Student; onCancel: () => void }
 type TwinPhase = 'opt-in' | 'proposal' | 'active'
 
 export function ThesisTwin() {
-  const { completeFeature } = useThesisStore()
-  const [phase, setPhase] = useState<TwinPhase>('opt-in')
+  const { completeFeature, setAcceptedTwin, acceptedTwinId } = useThesisStore()
+  const [phase, setPhase] = useState<TwinPhase>(acceptedTwinId ? 'active' : 'opt-in')
 
   return (
     <div className="mx-auto w-full ds-layout-narrow">
@@ -535,14 +535,14 @@ export function ThesisTwin() {
           <motion.div key="proposal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <MatchProposalScreen
               twin={MY_TWIN}
-              onAccept={() => { completeFeature('thesis-twin'); setPhase('active') }}
+              onAccept={() => { setAcceptedTwin(MY_TWIN.id); completeFeature('thesis-twin'); setPhase('active') }}
               onDecline={() => setPhase('opt-in')}
             />
           </motion.div>
         )}
         {phase === 'active' && (
           <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <SharedSpace twin={MY_TWIN} onCancel={() => setPhase('opt-in')} />
+            <SharedSpace twin={MY_TWIN} onCancel={() => { setAcceptedTwin(null); setPhase('opt-in') }} />
           </motion.div>
         )}
       </AnimatePresence>

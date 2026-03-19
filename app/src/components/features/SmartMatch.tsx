@@ -14,7 +14,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Building2, GraduationCap, Check, X, Bookmark,
-  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Users,
+  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Users, RotateCcw,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -448,7 +448,7 @@ function MatchCardView({
 export function SmartMatch() {
   const {
     profile, addAcceptedExpert, favouriteTopicIds, thesisNotes,
-    shortlistedSupervisorIds, toggleSavedMatch, savedMatchIds, completeFeature, tasks,
+    shortlistedSupervisorIds, toggleSavedMatch, savedMatchIds, completeFeature, uncompleteFeature, tasks,
   } = useThesisStore()
 
   const isDone = tasks.some((t) => t.featureId === 'topic-match' && t.status === 'done')
@@ -578,19 +578,32 @@ export function SmartMatch() {
       </div>
 
       {/* Mark as done */}
-      <div className="mt-4">
+      <div className="mt-4 border-t border-border pt-4">
         {isDone ? (
-          <span className="ds-caption inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
-            <Check className="size-3.5" strokeWidth={2.5} />
-            Marked as done
-          </span>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
+                <Check className="size-3" strokeWidth={2.5} />
+              </span>
+              <p className="ds-label text-foreground">Marked as complete</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => uncompleteFeature('topic-match')}
+              className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Undo
+            </button>
+          </div>
         ) : (
           <button
             type="button"
             onClick={() => completeFeature('topic-match')}
-            className="ds-caption rounded-full border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
           >
-            Mark as done
+            <Check className="size-4" />
+            Mark this step as done
           </button>
         )}
       </div>
