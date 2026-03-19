@@ -57,6 +57,7 @@ function TopicCard({
   onOpen: (t: Topic) => void
 }) {
   const company = topic.companyId ? companies.find((c) => c.id === topic.companyId) : null
+  const companyLogoSrc = company ? new URL(`../../../../mock-data/images/${company.id}.svg`, import.meta.url).href : null
 
   return (
     <div
@@ -93,6 +94,15 @@ function TopicCard({
           <Bookmark className={`size-3 ${isFavourite ? 'fill-current' : ''}`} />
         </button>
       </div>
+
+      {/* Company logo */}
+      {companyLogoSrc && (
+        <img
+          src={companyLogoSrc}
+          alt={company!.name}
+          className="w-20 object-contain object-left"
+        />
+      )}
 
       {/* Title */}
       <h3 className="ds-label text-foreground leading-snug">{topic.title}</h3>

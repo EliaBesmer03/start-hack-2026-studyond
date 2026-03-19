@@ -56,6 +56,7 @@ function SupervisorCard({
   onOpen: (s: Supervisor) => void
 }) {
   const pastCount = getPastStudents(supervisor.id).length
+  const uniLogoSrc = new URL(`../../../../mock-data/images/${supervisor.universityId}.svg`, import.meta.url).href
 
   return (
     <div
@@ -66,6 +67,11 @@ function SupervisorCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
+            <img
+              src={uniLogoSrc}
+              alt={uniName(supervisor.universityId)}
+              className="mb-2 w-20 max-h-[70px] object-contain object-left"
+            />
             <h3 className="ds-label text-foreground">
               {supervisor.title} {supervisor.firstName} {supervisor.lastName}
             </h3>

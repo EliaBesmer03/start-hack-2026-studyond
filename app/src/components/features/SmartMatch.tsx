@@ -23,6 +23,13 @@ import {
   type Topic, type Supervisor, type Company,
 } from '@/data/mock'
 import { useThesisStore } from '@/stores/thesis-store'
+// @ts-ignore
+import _universities from '@mock/universities.json'
+const _unis = _universities as { id: string; name: string }[]
+const uniLogoSrc = (universityId: string) =>
+  new URL(`../../../../mock-data/images/${universityId}.svg`, import.meta.url).href
+const companyLogoSrc = (companyId: string) =>
+  new URL(`../../../../mock-data/images/${companyId}.svg`, import.meta.url).href
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -226,6 +233,13 @@ function MatchCardView({
           </p>
           {supervisor ? (
             <>
+              <div className="mb-1.5 flex items-center gap-2">
+                <img
+                  src={uniLogoSrc(supervisor.universityId)}
+                  alt=""
+                  className="h-4 w-auto max-w-[64px] object-contain object-left"
+                />
+              </div>
               <p className="ds-label text-foreground">
                 {supervisor.title} {supervisor.firstName} {supervisor.lastName}
               </p>
@@ -245,6 +259,13 @@ function MatchCardView({
           </p>
           {company ? (
             <>
+              <div className="mb-1.5 flex items-center gap-2">
+                <img
+                  src={companyLogoSrc(company.id)}
+                  alt=""
+                  className="h-4 w-auto max-w-[64px] object-contain object-left"
+                />
+              </div>
               <p className="ds-label text-foreground">{company.name}</p>
               <p className="ds-caption mt-0.5 text-muted-foreground line-clamp-2">
                 {company.domains.slice(0, 2).join(' · ')}
