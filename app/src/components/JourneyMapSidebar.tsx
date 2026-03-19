@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Clock, LogOut } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Clock, LogOut, LayoutDashboard } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
 import type { ThesisStage } from '@/types/thesis'
@@ -82,11 +82,12 @@ interface JourneyMapSidebarProps {
   activeFeature: FeatureId | null
   onFeatureSelect: (id: FeatureId) => void
   onReset: () => void
+  onShowBoard: () => void
 }
 
 /* ── Component ─────────────────────────────────────────────────────── */
 
-export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: JourneyMapSidebarProps) {
+export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset, onShowBoard }: JourneyMapSidebarProps) {
   const { profile, tasks } = useThesisStore()
 
   const isFeatureDone = (featureId: FeatureId) =>
@@ -114,6 +115,19 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
 
       {/* Scrollable stage list */}
       <nav className="flex-1 overflow-y-auto py-3">
+        {/* Board button + title */}
+        <div className="px-4">
+          <button
+            type="button"
+            onClick={onShowBoard}
+            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 ds-label transition-colors hover:bg-secondary ${activeFeature === null ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}
+          >
+            <LayoutDashboard className="size-3.5 shrink-0" />
+            Kanban Board
+          </button>
+          <p className="ds-caption mt-3 px-1 pb-0 text-muted-foreground">Your Thesis Lifecycle:</p>
+        </div>
+
         {STAGES.map((stage, index) => {
           const isActive = index === currentIndex
           const isCompleted = index < currentIndex

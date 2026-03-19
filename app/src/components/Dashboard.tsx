@@ -395,6 +395,7 @@ export function Dashboard() {
           activeFeature={activeFeature}
           onFeatureSelect={(id) => setActiveFeature(id)}
           onReset={resetProfile}
+          onShowBoard={() => setActiveFeature(null)}
         />
       </div>
 
@@ -405,6 +406,7 @@ export function Dashboard() {
             activeFeature={activeFeature}
             onFeatureSelect={(id) => { setActiveFeature(id); setMobileSidebarOpen(false) }}
             onReset={() => { resetProfile(); setMobileSidebarOpen(false) }}
+            onShowBoard={() => { setActiveFeature(null); setMobileSidebarOpen(false) }}
           />
           <div
             className="flex-1 bg-background/60 backdrop-blur-sm"
