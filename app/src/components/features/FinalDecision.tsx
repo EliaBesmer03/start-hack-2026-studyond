@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, GraduationCap, Building2, Bookmark, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, GraduationCap, Building2, Bookmark, Sparkles, ChevronDown, ChevronUp, Send } from 'lucide-react'
 import { topics, supervisors, companies, fieldName } from '@/data/mock'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { FinalDecision as FinalDecisionType } from '@/stores/thesis-store'
@@ -16,6 +16,7 @@ export function FinalDecision() {
     favouriteTopicIds, shortlistedSupervisorIds, savedMatchIds,
     finalDecision, setFinalDecision, completeFeature,
   } = useThesisStore()
+  const [introSent, setIntroSent] = useState(false)
 
   const [selectedTopicId, setSelectedTopicId] = useState<string>(finalDecision?.topicId ?? '')
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<string>(finalDecision?.supervisorId ?? '')
@@ -145,10 +146,39 @@ export function FinalDecision() {
             )}
           </div>
 
+          {/* Request intro */}
           <div className="px-5 py-4 border-t border-border">
+            {introSent ? (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+                <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
+                  <Check className="size-3" strokeWidth={2.5} />
+                </span>
+                <div>
+                  <p className="ds-label text-foreground">Intro request sent</p>
+                  <p className="ds-caption text-muted-foreground">
+                    {supervisor && <span>{supervisor.title} {supervisor.lastName}</span>}
+                    {supervisor && company && ' and '}
+                    {company && <span>{company.name}</span>}
+                    {' '}have been notified of your interest.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIntroSent(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 ds-label text-background transition-colors hover:bg-foreground/80"
+              >
+                <Send className="size-4" />
+                Request intro to supervisor{company ? ' & company' : ''}
+              </button>
+            )}
+          </div>
+
+          <div className="px-5 pb-4 border-border">
             <button
               type="button"
-              onClick={() => { setConfirmed(false); setTopicOpen(true); setSupervisorOpen(true) }}
+              onClick={() => { setConfirmed(false); setIntroSent(false); setTopicOpen(true); setSupervisorOpen(true) }}
               className="ds-caption text-muted-foreground hover:text-foreground transition-colors"
             >
               Change decision →

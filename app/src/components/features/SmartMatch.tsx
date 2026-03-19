@@ -4,16 +4,17 @@
  * AI-generated recommendation cards are shown below.
  *
  * Actions:
- *   X            → Skip (not interested)
- *   Shortlist    → Save to Shortlisted tab to revisit before Final Decision
- *   Request Intro → Notify supervisor + company; no task completion (that happens at Final Decision)
+ *   X         → Skip (not interested)
+ *   Shortlist → Save to Shortlisted tab to revisit before Final Decision
+ *
+ * Request Intro happens only after the user confirms in the Final Decision step.
  */
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Building2, GraduationCap, Check, X, Bookmark,
-  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Send,
+  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -36,7 +37,7 @@ interface MatchCard {
   isAiRec?: boolean
 }
 
-type CardAction = 'intro-requested' | 'skipped' | 'shortlisted'
+type CardAction = 'skipped' | 'shortlisted'
 
 // ── Base curated match cards ──────────────────────────────────────────
 
@@ -175,7 +176,7 @@ function MatchCardView({
             </span>
           )}
           {card.isAiRec && (
-            <span className="ds-caption flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+            <span className="ds-caption flex items-center gap-1 rounded-full border-ai bg-ai px-2 py-0.5 text-white">
               <Sparkles className="size-3" />
               AI rec
             </span>
@@ -330,60 +331,18 @@ function MatchCardView({
           <button
             type="button"
             onClick={handleShortlist}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-2 ds-caption transition-all duration-300 ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-full transition-all duration-300 px-5 py-2.5 ds-label ${
               saveFlash
-                ? 'border-foreground bg-foreground text-background scale-105'
-                : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+                ? 'bg-foreground text-background scale-105'
+                : 'bg-foreground text-background hover:bg-foreground/80'
             }`}
             title="Shortlist for Final Decision"
           >
-            <Bookmark className={`size-3.5 transition-all ${saveFlash ? 'fill-current' : ''}`} />
-            Shortlist
+            <Bookmark className={`size-4 transition-all ${saveFlash ? 'fill-current' : ''}`} />
+            {saveFlash ? 'Shortlisted!' : 'Shortlist'}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => onAction(card.id, 'intro-requested')}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80"
-        >
-          <Send className="size-4" />
-          Request Intro
-        </button>
       </div>
-    </motion.div>
-  )
-}
-
-// ── Intro requested toast ─────────────────────────────────────────────
-
-function IntroRequestedToast({ topic, supervisor, company }: { topic: Topic; supervisor: Supervisor | null; company: Company | null }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mt-4 overflow-hidden rounded-xl border border-border bg-secondary"
-    >
-      <div className="flex items-center gap-3 px-4 py-3">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-          <Send className="size-3.5" strokeWidth={2} />
-        </span>
-        <div>
-          <p className="ds-label text-foreground">Intro request sent</p>
-          <p className="ds-caption text-muted-foreground">
-            Your interest in "{topic.title}" has been noted.
-          </p>
-        </div>
-      </div>
-      {(supervisor || company) && (
-        <div className="border-t border-border bg-secondary/60 px-4 py-2.5">
-          <p className="ds-caption text-muted-foreground">
-            {supervisor && <span className="font-medium text-foreground">{supervisor.lastName}</span>}
-            {supervisor && company && ' and '}
-            {company && <span className="font-medium text-foreground">{company.name}</span>}
-            {' '}will receive an intro request. You still pick your final combo in the Final Decision step.
-          </p>
-        </div>
-      )}
     </motion.div>
   )
 }
@@ -461,11 +420,8 @@ export function SmartMatch() {
     setActions((prev) => ({ ...prev, [id]: action }))
     if (action === 'shortlisted') {
       toggleSavedMatch(id)
-    }
-    if (action === 'intro-requested') {
+      // Propagate expert IDs to Interview Partners
       const card = cards.find((c) => c.id === id)
-      // Propagate expert IDs to Interview Partners, but don't complete the task —
-      // that happens only when the user commits in Final Decision
       if (card) {
         card.topic.expertIds.forEach((eid) => addAcceptedExpert(eid))
       }
@@ -477,7 +433,7 @@ export function SmartMatch() {
   }
 
   const activeCards = cards.filter((c) => !actions[c.id] || actions[c.id] === 'shortlisted')
-  const dismissed = cards.filter((c) => actions[c.id] === 'skipped' || actions[c.id] === 'intro-requested')
+  const dismissed = cards.filter((c) => actions[c.id] === 'skipped')
 
   const fieldAnswer = profile.answers.find((a) => a.questionIndex === 1)?.value
   const FIELD_LABEL: Record<string, string> = {
@@ -498,12 +454,12 @@ export function SmartMatch() {
         <h2 className="ds-title-md text-foreground">Smart Match</h2>
         <p className="ds-body mt-2 text-muted-foreground">
           Bundled matches combining your bookmarked topics, shortlisted supervisors, and AI recommendations.
-          <strong className="text-foreground"> Shortlist</strong> to save for Final Decision.
-          <strong className="text-foreground"> Request Intro</strong> to notify the supervisor and company — you still pick your final combo later.
+          <strong className="text-foreground"> Shortlist</strong> to save combinations for your Final Decision step.
+          Intro requests are sent automatically once you confirm your final choice.
         </p>
         {fieldLabel && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2">
-            <Sparkles className="size-3.5 shrink-0 text-muted-foreground" />
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-ai bg-secondary px-3 py-2">
+            <Sparkles className="size-3.5 shrink-0 text-ai-solid" />
             <p className="ds-caption text-muted-foreground">
               Personalised for your <span className="font-medium text-foreground">{fieldLabel}</span> profile
             </p>
@@ -555,9 +511,6 @@ export function SmartMatch() {
             {activeCards.filter((c) => c.fromFavourite).map((card) => (
               <div key={card.id}>
                 <MatchCardView card={card} onAction={handleAction} isSaved={savedMatchIds.includes(card.id)} />
-                {actions[card.id] === 'intro-requested' && (
-                  <IntroRequestedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />
-                )}
               </div>
             ))}
           </AnimatePresence>
@@ -565,7 +518,7 @@ export function SmartMatch() {
           {/* Section: AI recommendations */}
           {activeCards.filter((c) => c.isAiRec).length > 0 && (
             <div className="mt-6">
-              <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-ai-solid">
                 <Sparkles className="size-3" />
                 AI recommendations
               </p>
@@ -573,9 +526,6 @@ export function SmartMatch() {
                 {activeCards.filter((c) => c.isAiRec).map((card) => (
                   <div key={card.id} className="mb-4">
                     <MatchCardView card={card} onAction={handleAction} isSaved={savedMatchIds.includes(card.id)} />
-                    {actions[card.id] === 'intro-requested' && (
-                      <IntroRequestedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />
-                    )}
                   </div>
                 ))}
               </AnimatePresence>

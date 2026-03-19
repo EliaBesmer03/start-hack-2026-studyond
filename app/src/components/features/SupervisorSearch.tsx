@@ -337,11 +337,11 @@ function SupervisorDrawer({
           </button>
           <button
             type="button"
-            onClick={() => onDraftEmail(supervisor)}
+            onClick={() => {}}
             className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80"
           >
-            <Mail className="size-4" />
-            Draft outreach email →
+            <MessageSquare className="size-4" />
+            Send inquiry message
           </button>
         </div>
       </motion.aside>

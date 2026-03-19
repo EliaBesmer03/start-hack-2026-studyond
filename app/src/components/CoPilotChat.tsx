@@ -337,7 +337,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-7 items-center justify-center rounded-full bg-foreground">
+          <div className="flex size-7 items-center justify-center rounded-full bg-ai">
             <Sparkles className="size-3.5 text-background" />
           </div>
           <div>
