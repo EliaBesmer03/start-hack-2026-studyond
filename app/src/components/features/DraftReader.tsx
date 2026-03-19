@@ -235,7 +235,7 @@ function ReaderCard({
               <p className="ds-label text-foreground">{expert.firstName} {expert.lastName}</p>
               <div className="flex items-center gap-0.5">
                 {[...Array(Math.round(score / 20))].map((_, i) => (
-                  <Star key={i} className="size-3 fill-amber-400 text-amber-400" />
+                  <Star key={i} className="size-3 fill-foreground text-foreground" />
                 ))}
               </div>
             </div>

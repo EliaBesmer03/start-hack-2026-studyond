@@ -121,7 +121,7 @@ function ExpertCard({
               {expert.firstName} {expert.lastName}
             </p>
             {expert.offerInterviews && (
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+              <span className="rounded-full bg-secondary px-2 py-0.5 ds-badge font-medium text-foreground">
                 Open to interviews
               </span>
             )}

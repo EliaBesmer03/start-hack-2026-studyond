@@ -27,11 +27,11 @@ const KANBAN_COLUMNS: { id: TaskStatus; label: string; description: string }[] =
 ]
 
 const STAGE_TAG: Record<ThesisStage, { label: string; cls: string }> = {
-  orientation:         { label: 'Orientation',        cls: 'bg-slate-100 text-slate-600' },
-  'topic-discovery':   { label: 'Topic & Supervisor', cls: 'bg-blue-50 text-blue-700' },
-  'supervisor-search': { label: 'Planning',           cls: 'bg-violet-50 text-violet-700' },
-  planning:            { label: 'Execution',          cls: 'bg-amber-50 text-amber-700' },
-  'execution-writing': { label: 'Writing',            cls: 'bg-emerald-50 text-emerald-700' },
+  orientation:         { label: 'Orientation',        cls: 'bg-secondary text-muted-foreground' },
+  'topic-discovery':   { label: 'Topic & Supervisor', cls: 'bg-secondary text-foreground' },
+  'supervisor-search': { label: 'Planning',           cls: 'bg-foreground/10 text-foreground' },
+  planning:            { label: 'Execution',          cls: 'bg-foreground/15 text-foreground' },
+  'execution-writing': { label: 'Writing',            cls: 'bg-foreground/20 text-foreground' },
 }
 
 const NEXT_STATUS: Record<TaskStatus, TaskStatus> = {
@@ -98,13 +98,13 @@ function TaskCard({
 
       {/* Nudge banner */}
       {!isDone && task.nudge && !overlay && (
-        <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2">
-          <AlertCircle className="mt-0.5 size-3 shrink-0 text-amber-600" />
-          <p className="ds-caption flex-1 text-amber-700 leading-snug">{task.nudge}</p>
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary px-3 py-2">
+          <AlertCircle className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
+          <p className="ds-caption flex-1 text-foreground leading-snug">{task.nudge}</p>
           <button
             type="button"
             onClick={() => dismissNudge(task.id)}
-            className="shrink-0 text-amber-500 hover:text-amber-700"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
             aria-label="Dismiss nudge"
           >
             <X className="size-3" />

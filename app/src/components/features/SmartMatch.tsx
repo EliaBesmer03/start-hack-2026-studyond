@@ -89,8 +89,8 @@ const MATCH_CARDS: MatchCard[] = [
 
 function ScoreBadge({ score }: { score: number }) {
   const colour =
-    score >= 85 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-    score >= 70 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+    score >= 85 ? 'bg-foreground text-background border-foreground' :
+    score >= 70 ? 'bg-foreground/10 text-foreground border-foreground/20' :
                   'bg-secondary text-muted-foreground border-border'
   return (
     <span className={`ds-label flex items-center gap-1 rounded-full border px-3 py-1 ${colour}`}>
@@ -110,7 +110,7 @@ function EmploymentBadge({ topic }: { topic: Topic }) {
     topic.employmentType === 'graduate_program'? 'Graduate programme' :
     topic.employmentType === 'direct_entry'    ? 'Direct entry' : 'Employment'
   return (
-    <span className="ds-caption flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
+    <span className="ds-caption flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
       <BadgeCheck className="size-3" />
       {label}{topic.employment === 'open' ? ' (possible)' : ''}
     </span>
@@ -139,7 +139,7 @@ function MatchCardView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16, scale: 0.97 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+      className="overflow-hidden rounded-2xl border border-border bg-background hover:shadow-md transition-shadow duration-150"
     >
       {/* Score bar */}
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -225,7 +225,7 @@ function MatchCardView({
             <span className="font-medium text-foreground">{expert.firstName} {expert.lastName}</span>
             · {expert.title} at {companyName(expert.companyId)}
             {expert.offerInterviews && (
-              <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">
+              <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 ds-badge font-medium text-foreground">
                 Offers interviews
               </span>
             )}
@@ -308,14 +308,14 @@ function AcceptedToast({ topic }: { topic: Topic }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"
+      className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-secondary px-4 py-3"
     >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
         <Check className="size-3.5" strokeWidth={2.5} />
       </span>
       <div>
-        <p className="ds-label text-emerald-800">Match accepted</p>
-        <p className="ds-caption text-emerald-700">
+        <p className="ds-label text-foreground">Match accepted</p>
+        <p className="ds-caption text-muted-foreground">
           We'll propose an intro meeting for "{topic.title}".
         </p>
       </div>

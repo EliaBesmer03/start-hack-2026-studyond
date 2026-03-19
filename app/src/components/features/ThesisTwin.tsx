@@ -144,7 +144,7 @@ function MatchProposalScreen({
     >
       <p className="ds-label mb-4 text-center text-muted-foreground">We found your match</p>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-border bg-background hover:shadow-md transition-shadow duration-150">
         {/* Avatar area */}
         <div className="flex flex-col items-center bg-secondary/40 px-6 pb-5 pt-6">
           <div className="flex size-16 items-center justify-center rounded-full bg-foreground text-background ds-title-sm">
@@ -264,7 +264,7 @@ function SharedSpace({ twin }: { twin: Student }) {
         <div>
           <p className="ds-label text-foreground">
             {twin.firstName} {twin.lastName}
-            <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Active twin</span>
+            <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 ds-badge font-medium text-foreground">Active twin</span>
           </p>
           <p className="ds-caption text-muted-foreground">Execution stage · {twin.degree.toUpperCase()}</p>
         </div>

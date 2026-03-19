@@ -1,6 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { STAGES } from '@/types/thesis'
 import type { ThesisProfile, ThesisStage, WizardAnswer } from '@/types/thesis'
+
+const STAGE_ORDER = STAGES.map((s) => s.id) as ThesisStage[]
+
+function nextStage(current: ThesisStage): ThesisStage | null {
+  const i = STAGE_ORDER.indexOf(current)
+  return i >= 0 && i < STAGE_ORDER.length - 1 ? STAGE_ORDER[i + 1] : null
+}
 
 export type TaskStatus = 'ready' | 'in-progress' | 'done'
 
@@ -53,9 +61,9 @@ const DEFAULT_TASKS: Task[] = [
   {
     id: 't2',
     stageId: 'topic-discovery',
-    title: 'Apply to 1–2 Company Topics',
-    description: 'Submit your interest to company-posted topics before spots fill up.',
-    featureId: 'topic-match',
+    title: 'Review Your Smart Matches',
+    description: 'Accept, skip, or save bundled topic + supervisor + company matches curated for you.',
+    featureId: 'smart-match',
     status: 'ready',
   },
   {
@@ -126,6 +134,14 @@ const DEFAULT_TASKS: Task[] = [
     title: 'Find and Schedule Interview Partners',
     description: 'Match with domain experts for primary research interviews.',
     featureId: 'interview-partners',
+    status: 'ready',
+  },
+  {
+    id: 'e2b',
+    stageId: 'planning',
+    title: 'Find Your Thesis Twin',
+    description: 'Get paired with one peer at the same stage for mutual accountability and check-ins.',
+    featureId: 'thesis-twin',
     status: 'ready',
   },
   {
@@ -224,14 +240,22 @@ export const useThesisStore = create<ThesisState>()(
         set((s) => ({ profile: { ...s.profile, completedOnboarding: true } })),
       resetProfile: () => set({ profile: initialProfile, tasks: DEFAULT_TASKS }),
       updateTaskStatus: (taskId, status) =>
-        set((s) => ({
-          tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
-        })),
+        set((s) => {
+          const updatedTasks = s.tasks.map((t) => (t.id === taskId ? { ...t, status } : t))
+          const currentStage = s.profile.stage ?? 'orientation'
+          const stageTasks = updatedTasks.filter((t) => t.stageId === currentStage)
+          const allDone = stageTasks.length > 0 && stageTasks.every((t) => t.status === 'done')
+          const next = allDone ? nextStage(currentStage) : null
+          return {
+            tasks: updatedTasks,
+            profile: next ? { ...s.profile, stage: next } : s.profile,
+          }
+        }),
       dismissNudge: (taskId) =>
         set((s) => ({
           tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, nudge: undefined } : t)),
         })),
     }),
-    { name: 'studyond-thesis' },
+    { name: 'studyond-thesis-v2' },
   ),
 )

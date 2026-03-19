@@ -108,13 +108,11 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
               <button
                 type="button"
                 onClick={() => toggleExpand(stage.id)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary ${
-                  isFuture ? 'opacity-50' : ''
-                }`}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary"
               >
                 {/* Circle node */}
                 <span
-                  className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-all ${
+                  className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ds-badge font-semibold transition-all ${
                     isActive
                       ? 'border-foreground bg-foreground text-background'
                       : isCompleted
@@ -156,14 +154,9 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
                         <button
                           key={feat.id}
                           type="button"
-                          onClick={() => !isFuture && onFeatureSelect(feat.id)}
-                          disabled={isFuture}
+                          onClick={() => onFeatureSelect(feat.id)}
                           className={`flex w-full flex-col items-start gap-0.5 py-2 pl-4 pr-3 text-left transition-colors ${
-                            isFeatureActive
-                              ? 'bg-secondary'
-                              : isFuture
-                              ? 'cursor-default'
-                              : 'hover:bg-secondary/60'
+                            isFeatureActive ? 'bg-secondary' : 'hover:bg-secondary/60'
                           }`}
                         >
                           <span
