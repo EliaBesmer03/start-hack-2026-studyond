@@ -1,46 +1,47 @@
 /**
- * Feature: Create Timeline
- * Gantt-style thesis planner.
- * - One row per category, all 20 weeks always visible
- * - Drag blocks to reposition (mouse events, no HTML5 drag API)
- * - Resize by dragging the right edge handle
- * - Neighbour blocks auto-shift to fill gaps / avoid overlap
- * - Palette chips add to the right of the last block in that row
- * - Example timeline pre-loaded, fully adaptable
+ * Feature: Create Timeline (vertical, interactive)
+ * - Weeks run top-to-bottom; categories are columns
+ * - Hand-in date drives real calendar labels (weeks counted backwards)
+ * - Draw on empty space to create a new block (drag-to-create)
+ * - Click an existing block to open an edit popup
+ * - Drag a block to reposition; drag bottom edge to resize
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check, Calendar, Plus, X,
-  Mail, PenLine, BookOpen, FlaskConical, Flag, RotateCcw, ChevronDown,
+  Mail, PenLine, BookOpen, FlaskConical, Flag, RotateCcw, ChevronDown, Trash2,
 } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { TimelineEntry } from '@/stores/thesis-store'
 
-// ── Constants ─────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────
 
 const TOTAL_WEEKS = 20
-const ROW_H = 56       // px per row — enough for 2 lines of label text
-const ROW_GAP = 6      // px gap between rows
-const HEADER_H = 32    // px for week header
+const WEEK_H = 48
+const COL_W = 160
+const LABEL_W = 88
 
 type Category = TimelineEntry['category']
-
 const CATEGORIES: Category[] = ['admin', 'outreach', 'research', 'writing', 'milestone']
 
-const CATEGORY_META: Record<Category, { label: string; icon: React.ReactNode; bg: string; text: string; border: string }> = {
-  admin:     { label: 'Admin',     icon: <BookOpen className="size-3" />,    bg: 'bg-secondary',   text: 'text-foreground',   border: 'border-foreground/15' },
-  outreach:  { label: 'Outreach',  icon: <Mail className="size-3" />,        bg: 'bg-secondary',   text: 'text-foreground',   border: 'border-foreground/15' },
-  research:  { label: 'Research',  icon: <FlaskConical className="size-3" />, bg: 'bg-secondary',  text: 'text-foreground',   border: 'border-foreground/15' },
-  writing:   { label: 'Writing',   icon: <PenLine className="size-3" />,     bg: 'bg-secondary',   text: 'text-foreground',   border: 'border-foreground/15' },
-  milestone: { label: 'Milestone', icon: <Flag className="size-3" />,        bg: 'bg-foreground',  text: 'text-background',   border: 'border-foreground' },
+const CATEGORY_META: Record<Category, {
+  label: string; icon: React.ReactNode
+  bg: string; text: string; border: string; headerBg: string
+  ghostBg: string
+}> = {
+  admin:     { label: 'Admin',     icon: <BookOpen className="size-3.5" />,     bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
+  outreach:  { label: 'Outreach',  icon: <Mail className="size-3.5" />,         bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
+  research:  { label: 'Research',  icon: <FlaskConical className="size-3.5" />, bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
+  writing:   { label: 'Writing',   icon: <PenLine className="size-3.5" />,      bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
+  milestone: { label: 'Milestone', icon: <Flag className="size-3.5" />,         bg: 'bg-foreground', text: 'text-background',  border: 'border-foreground',   headerBg: 'bg-foreground/10',   ghostBg: 'bg-foreground/20' },
 }
 
-// ── Example / default timeline ────────────────────────────────────────
+// ── Default timeline ───────────────────────────────────────────────────
 
-let _nextId = 1
-function mkId() { return String(_nextId++) }
+let _id = 1
+const mkId = () => String(_id++)
 
 const DEFAULT_TIMELINE: TimelineEntry[] = [
   { id: mkId(), label: 'University registration', category: 'admin',     week: 1,  duration: 1 },
@@ -60,7 +61,7 @@ const DEFAULT_TIMELINE: TimelineEntry[] = [
   { id: mkId(), label: 'Submission',              category: 'milestone', week: 20, duration: 1 },
 ]
 
-// ── Palette chips ─────────────────────────────────────────────────────
+// ── Palette ────────────────────────────────────────────────────────────
 
 const PALETTE: { label: string; category: Category; duration: number }[] = [
   { label: 'University registration', category: 'admin',     duration: 1 },
@@ -68,7 +69,6 @@ const PALETTE: { label: string; category: Category; duration: number }[] = [
   { label: 'Supervisor outreach',     category: 'outreach',  duration: 1 },
   { label: 'Follow-up outreach',      category: 'outreach',  duration: 1 },
   { label: 'Expert interviews',       category: 'outreach',  duration: 2 },
-  { label: 'Peer feedback session',   category: 'outreach',  duration: 1 },
   { label: 'Thesis Twin check-in',    category: 'outreach',  duration: 1 },
   { label: 'Literature review',       category: 'research',  duration: 4 },
   { label: 'Data collection',         category: 'research',  duration: 3 },
@@ -83,67 +83,357 @@ const PALETTE: { label: string; category: Category; duration: number }[] = [
   { label: 'Submission',              category: 'milestone', duration: 1 },
 ]
 
-// ── Helpers ───────────────────────────────────────────────────────────
+// ── Date helpers ───────────────────────────────────────────────────────
 
-function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)) }
-
-/** After moving/resizing one entry, push neighbours right to avoid overlap, cap at TOTAL_WEEKS */
-function pushNeighbours(entries: TimelineEntry[], changedId: string, category: Category): TimelineEntry[] {
-  const row = entries.filter((e) => e.category === category).sort((a, b) => a.week - b.week)
-  // rebuild the row without overlaps: each item starts at max(its own week, prev end+1)
-  let cursor = 1
-  const fixed = row.map((e) => {
-    const start = Math.max(e.week, cursor)
-    const end = Math.min(start + e.duration - 1, TOTAL_WEEKS)
-    const duration = end - start + 1
-    cursor = end + 1
-    return { ...e, week: start, duration }
-  })
-  return entries.map((e) => {
-    const f = fixed.find((x) => x.id === e.id)
-    return f ?? e
-  })
+function weekStart(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
+  d.setHours(0, 0, 0, 0)
+  return d
 }
 
-// ── Gantt row ─────────────────────────────────────────────────────────
+function addWeeks(date: Date, weeks: number): Date {
+  const d = new Date(date)
+  d.setDate(d.getDate() + weeks * 7)
+  return d
+}
 
-function GanttRow({
+const FMT_SHORT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+const FMT_MONTH = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit' })
+const FMT_FULL  = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
+function weekStartDate(handIn: Date, weekNum: number): Date {
+  const week20Start = addWeeks(weekStart(handIn), -19)
+  return addWeeks(week20Start, weekNum - 1)
+}
+
+function weekEndDate(handIn: Date, weekNum: number): Date {
+  const end = addWeeks(weekStartDate(handIn, weekNum + 1), 0)
+  end.setDate(end.getDate() - 1)
+  return end
+}
+
+function formatMonthLabel(handIn: Date, weekNum: number): string {
+  return FMT_MONTH.format(weekStartDate(handIn, weekNum))
+}
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v))
+}
+
+// ── Types ──────────────────────────────────────────────────────────────
+
+interface PopupState {
+  entryId: string
+  // position in viewport for anchoring
+  anchorTop: number
+  anchorLeft: number
+}
+
+interface GhostState {
+  category: Category
+  startWeek: number
+  endWeek: number   // inclusive, may be < startWeek while dragging up
+}
+
+// ── Edit popup ─────────────────────────────────────────────────────────
+
+function EntryPopup({
+  entry,
+  handIn,
+  anchorTop,
+  anchorLeft,
+  onUpdate,
+  onDelete,
+  onClose,
+}: {
+  entry: TimelineEntry
+  handIn: Date
+  anchorTop: number
+  anchorLeft: number
+  onUpdate: (id: string, changes: Partial<Pick<TimelineEntry, 'label' | 'category' | 'week' | 'duration'>>) => void
+  onDelete: (id: string) => void
+  onClose: () => void
+}) {
+  const [label, setLabel] = useState(entry.label)
+  const [category, setCategory] = useState<Category>(entry.category)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { inputRef.current?.focus(); inputRef.current?.select() }, [])
+
+  const startDate = weekStartDate(handIn, entry.week)
+  const endDate   = weekEndDate(handIn, entry.week + entry.duration - 1)
+
+  const handleSave = () => {
+    const trimmed = label.trim()
+    if (!trimmed) return
+    onUpdate(entry.id, { label: trimmed, category })
+    onClose()
+  }
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave()
+    if (e.key === 'Escape') onClose()
+  }
+
+  // Keep popup within viewport — flip left if too close to right edge
+  const popupW = 272
+  const leftPos = Math.min(anchorLeft, window.innerWidth - popupW - 16)
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+
+      {/* Panel */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        className="fixed z-50 w-68 rounded-xl border border-border bg-background shadow-xl"
+        style={{ top: anchorTop, left: leftPos, width: popupW }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <p className="ds-label text-foreground">Edit block</p>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Label */}
+          <div>
+            <label className="ds-caption mb-1 block text-muted-foreground">Label</label>
+            <input
+              ref={inputRef}
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              onKeyDown={handleKey}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 ds-body text-foreground focus:border-foreground/30 focus:outline-none"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="ds-caption mb-1 block text-muted-foreground">Category</label>
+            <div className="relative">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+                className="w-full appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 ds-body text-foreground focus:border-foreground/30 focus:outline-none"
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{CATEGORY_META[cat].label}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </div>
+
+          {/* Date range (read-only) */}
+          <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2">
+            <p className="ds-caption text-muted-foreground">
+              {FMT_SHORT.format(startDate)} – {FMT_SHORT.format(endDate)}
+            </p>
+            <p className="ds-caption text-muted-foreground/60 mt-0.5">
+              W{entry.week} · {entry.duration} week{entry.duration !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+          <button
+            type="button"
+            onClick={() => { onDelete(entry.id); onClose() }}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption text-muted-foreground transition-colors hover:border-red-300 hover:text-red-500"
+          >
+            <Trash2 className="size-3.5" />
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!label.trim()}
+            className="ml-auto flex items-center gap-1.5 rounded-full bg-foreground px-4 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
+          >
+            <Check className="size-3.5" />
+            Save
+          </button>
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
+// ── New-entry popup (after draw) ───────────────────────────────────────
+
+function NewEntryPopup({
+  category,
+  week,
+  duration,
+  handIn,
+  anchorTop,
+  anchorLeft,
+  onConfirm,
+  onClose,
+}: {
+  category: Category
+  week: number
+  duration: number
+  handIn: Date
+  anchorTop: number
+  anchorLeft: number
+  onConfirm: (label: string, category: Category) => void
+  onClose: () => void
+}) {
+  const [label, setLabel] = useState('')
+  const [cat, setCat] = useState<Category>(category)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  const startDate = weekStartDate(handIn, week)
+  const endDate   = weekEndDate(handIn, week + duration - 1)
+  const popupW    = 272
+  const leftPos   = Math.min(anchorLeft, window.innerWidth - popupW - 16)
+
+  const handleConfirm = () => {
+    const trimmed = label.trim()
+    if (!trimmed) return
+    onConfirm(trimmed, cat)
+    onClose()
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        className="fixed z-50 rounded-xl border border-border bg-background shadow-xl"
+        style={{ top: anchorTop, left: leftPos, width: popupW }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <p className="ds-label text-foreground">New block</p>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="ds-caption mb-1 block text-muted-foreground">Label</label>
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="e.g. Literature review"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') onClose() }}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 ds-body text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="ds-caption mb-1 block text-muted-foreground">Category</label>
+            <div className="relative">
+              <select
+                value={cat}
+                onChange={(e) => setCat(e.target.value as Category)}
+                className="w-full appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 ds-body text-foreground focus:border-foreground/30 focus:outline-none"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{CATEGORY_META[c].label}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2">
+            <p className="ds-caption text-muted-foreground">
+              {FMT_SHORT.format(startDate)} – {FMT_SHORT.format(endDate)}
+            </p>
+            <p className="ds-caption text-muted-foreground/60 mt-0.5">
+              W{week} · {duration} week{duration !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+          <button type="button" onClick={onClose} className="ds-caption text-muted-foreground hover:text-foreground transition-colors">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!label.trim()}
+            className="ml-auto flex items-center gap-1.5 rounded-full bg-foreground px-4 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
+          >
+            <Plus className="size-3.5" />
+            Add block
+          </button>
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
+// ── Gantt column ───────────────────────────────────────────────────────
+
+function GanttColumn({
   category,
   entries,
-  totalWeeks,
-  gridWidth,
+  handIn,
   onUpdate,
-  onRemove,
+  onDelete,
+  onOpenPopup,
+  onCommitDraw,
 }: {
   category: Category
   entries: TimelineEntry[]
-  totalWeeks: number
-  gridWidth: number
+  handIn: Date
   onUpdate: (id: string, week: number, duration: number) => void
-  onRemove: (id: string) => void
+  onDelete: (id: string) => void
+  onOpenPopup: (id: string, anchorTop: number, anchorLeft: number) => void
+  onCommitDraw: (category: Category, week: number, duration: number, anchorTop: number, anchorLeft: number) => void
 }) {
   const meta = CATEGORY_META[category]
-  const weekPx = gridWidth / totalWeeks
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [ghost, setGhost] = useState<GhostState | null>(null)
+  const colRef = useRef<HTMLDivElement>(null)
 
-  // ── drag-move ────────────────────────────────────────────────────
-  const dragRef = useRef<{ id: string; startX: number; origWeek: number; moved: boolean } | null>(null)
+  // ── drag-move block ────────────────────────────────────────────────
+  const dragRef = useRef<{ id: string; startY: number; origWeek: number; moved: boolean } | null>(null)
 
   const onMouseDownBlock = useCallback((e: React.MouseEvent, entry: TimelineEntry) => {
     e.preventDefault()
-    dragRef.current = { id: entry.id, startX: e.clientX, origWeek: entry.week, moved: false }
+    e.stopPropagation()
+    dragRef.current = { id: entry.id, startY: e.clientY, origWeek: entry.week, moved: false }
 
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return
-      const dx = ev.clientX - dragRef.current.startX
-      if (Math.abs(dx) > 3) dragRef.current.moved = true
-      const dWeeks = Math.round(dx / weekPx)
-      const newWeek = clamp(dragRef.current.origWeek + dWeeks, 1, totalWeeks - entry.duration + 1)
+      const dy = ev.clientY - dragRef.current.startY
+      if (Math.abs(dy) > 4) dragRef.current.moved = true
+      const dWeeks = Math.round(dy / WEEK_H)
+      const newWeek = clamp(dragRef.current.origWeek + dWeeks, 1, TOTAL_WEEKS - entry.duration + 1)
       onUpdate(dragRef.current.id, newWeek, entry.duration)
     }
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       if (dragRef.current && !dragRef.current.moved) {
-        setExpandedId((prev) => (prev === entry.id ? null : entry.id))
+        // click → open popup
+        const rect = colRef.current?.getBoundingClientRect()
+        const anchorLeft = rect ? rect.left : ev.clientX
+        const anchorTop = ev.clientY + 8
+        onOpenPopup(entry.id, anchorTop, anchorLeft)
       }
       dragRef.current = null
       window.removeEventListener('mousemove', onMove)
@@ -151,21 +441,20 @@ function GanttRow({
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [weekPx, onUpdate])
+  }, [onUpdate, onOpenPopup])
 
-  // ── drag-resize (right edge) ──────────────────────────────────────
-  const resizeRef = useRef<{ id: string; startX: number; origDuration: number; week: number } | null>(null)
+  // ── drag-resize block ──────────────────────────────────────────────
+  const resizeRef = useRef<{ id: string; startY: number; origDuration: number; week: number } | null>(null)
 
   const onMouseDownResize = useCallback((e: React.MouseEvent, entry: TimelineEntry) => {
     e.preventDefault()
     e.stopPropagation()
-    resizeRef.current = { id: entry.id, startX: e.clientX, origDuration: entry.duration, week: entry.week }
+    resizeRef.current = { id: entry.id, startY: e.clientY, origDuration: entry.duration, week: entry.week }
 
     const onMove = (ev: MouseEvent) => {
       if (!resizeRef.current) return
-      const dx = ev.clientX - resizeRef.current.startX
-      const dWeeks = Math.round(dx / weekPx)
-      const newDuration = clamp(resizeRef.current.origDuration + dWeeks, 1, totalWeeks - resizeRef.current.week + 1)
+      const dWeeks = Math.round((ev.clientY - resizeRef.current.startY) / WEEK_H)
+      const newDuration = clamp(resizeRef.current.origDuration + dWeeks, 1, TOTAL_WEEKS - resizeRef.current.week + 1)
       onUpdate(resizeRef.current.id, resizeRef.current.week, newDuration)
     }
     const onUp = () => {
@@ -175,158 +464,154 @@ function GanttRow({
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [weekPx, onUpdate])
+  }, [onUpdate])
+
+  // ── draw-to-create on empty space ─────────────────────────────────
+  const drawRef = useRef<{ startWeek: number; moved: boolean; startY: number } | null>(null)
+
+  const onMouseDownCol = useCallback((e: React.MouseEvent) => {
+    // only left-button on empty space (not on a block)
+    if (e.button !== 0) return
+    const rect = colRef.current!.getBoundingClientRect()
+    const relY = e.clientY - rect.top
+    const startWeek = clamp(Math.floor(relY / WEEK_H) + 1, 1, TOTAL_WEEKS)
+    drawRef.current = { startWeek, moved: false, startY: e.clientY }
+    setGhost({ category, startWeek, endWeek: startWeek })
+
+    const onMove = (ev: MouseEvent) => {
+      if (!drawRef.current) return
+      if (Math.abs(ev.clientY - drawRef.current.startY) > 4) drawRef.current.moved = true
+      const relY2 = ev.clientY - rect.top
+      const curWeek = clamp(Math.floor(relY2 / WEEK_H) + 1, 1, TOTAL_WEEKS)
+      setGhost({ category, startWeek: drawRef.current.startWeek, endWeek: curWeek })
+    }
+    const onUp = (ev: MouseEvent) => {
+      if (drawRef.current) {
+        const relY2 = ev.clientY - rect.top
+        const endWeek = clamp(Math.floor(relY2 / WEEK_H) + 1, 1, TOTAL_WEEKS)
+        const week     = Math.min(drawRef.current.startWeek, endWeek)
+        const duration = Math.abs(endWeek - drawRef.current.startWeek) + 1
+        // anchor popup slightly below the draw start
+        const anchorTop  = rect.top + (week - 1) * WEEK_H + 8
+        const anchorLeft = rect.left
+        onCommitDraw(category, week, duration, anchorTop, anchorLeft)
+      }
+      drawRef.current = null
+      setGhost(null)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [category, onCommitDraw])
+
+  const ghostTop      = ghost ? (Math.min(ghost.startWeek, ghost.endWeek) - 1) * WEEK_H + 3 : 0
+  const ghostHeight   = ghost ? Math.abs(ghost.endWeek - ghost.startWeek + 1) * WEEK_H - 6 : 0
 
   return (
-    <div className="flex" style={{ height: ROW_H }}>
-      {/* Row label */}
-      <div
-        className="flex shrink-0 items-center gap-1.5 border-r border-b border-border bg-secondary/30 px-3"
-        style={{ width: 120 }}
-      >
-        <span className="text-muted-foreground">{meta.icon}</span>
-        <span className="ds-caption font-medium text-muted-foreground truncate">{meta.label}</span>
-      </div>
+    <div
+      ref={colRef}
+      className="relative border-r border-border select-none"
+      style={{ width: COL_W, height: TOTAL_WEEKS * WEEK_H, cursor: 'crosshair' }}
+      onMouseDown={onMouseDownCol}
+    >
+      {/* Grid lines */}
+      {Array.from({ length: TOTAL_WEEKS }).map((_, i) => (
+        <div key={i} className="absolute left-0 right-0 border-b border-border/30" style={{ top: (i + 1) * WEEK_H - 1 }} />
+      ))}
 
-      {/* Grid area */}
-      <div
-        className="relative flex-1 border-b border-border"
-        style={{ height: ROW_H }}
-      >
-        {/* Week grid lines */}
-        {Array.from({ length: totalWeeks }).map((_, i) => (
+      {/* Ghost preview while drawing */}
+      {ghost && (
+        <div
+          className={`absolute left-1 right-1 rounded-lg border-2 border-dashed border-foreground/30 ${meta.ghostBg} pointer-events-none`}
+          style={{ top: ghostTop, height: Math.max(ghostHeight, WEEK_H - 6) }}
+        />
+      )}
+
+      {/* Existing blocks */}
+      {entries.map((entry) => {
+        const top    = (entry.week - 1) * WEEK_H
+        const height = entry.duration * WEEK_H
+        const startDate = weekStartDate(handIn, entry.week)
+        const endDate   = weekEndDate(handIn, entry.week + entry.duration - 1)
+
+        return (
           <div
-            key={i}
-            className="absolute top-0 bottom-0 border-r border-border/40"
-            style={{ left: `${((i + 1) / totalWeeks) * 100}%` }}
-          />
-        ))}
-
-        {/* Entry blocks */}
-        {entries.map((entry) => {
-          const left = ((entry.week - 1) / totalWeeks) * 100
-          const width = (entry.duration / totalWeeks) * 100
-          const pxWidth = (entry.duration / totalWeeks) * gridWidth
-          const isBar = pxWidth < 20
-          // Scale font so text has the best chance of fitting the box width
-          const fontSize = pxWidth < 48 ? 8 : pxWidth < 72 ? 9 : 10
-          return (
-            <div
-              key={entry.id}
-              className={`group absolute top-[4px] bottom-[4px] rounded-sm border select-none cursor-grab active:cursor-grabbing flex items-center ${expandedId === entry.id ? 'overflow-visible' : 'overflow-hidden'} ${meta.bg} ${meta.text} ${meta.border}`}
-              style={{ left: `${left}%`, width: `${width}%`, minWidth: 4 }}
-              onMouseDown={(e) => onMouseDownBlock(e, entry)}
-            >
-              {/* Expanded tooltip */}
-              {expandedId === entry.id && (
-                <div className="absolute bottom-full left-0 z-20 mb-1 min-w-max max-w-48 rounded-lg border border-border bg-background px-2.5 py-1.5 shadow-md pointer-events-none">
-                  <p className="ds-caption font-medium text-foreground leading-snug">{entry.label}</p>
-                  <p className="ds-caption text-muted-foreground mt-0.5">W{entry.week}–W{entry.week + entry.duration - 1}</p>
-                </div>
+            key={entry.id}
+            className={`group absolute left-1 right-1 rounded-lg border flex flex-col overflow-hidden cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md hover:z-10 ${meta.bg} ${meta.text} ${meta.border}`}
+            style={{ top: top + 3, height: height - 6, zIndex: 1 }}
+            onMouseDown={(e) => onMouseDownBlock(e, entry)}
+          >
+            <div className="flex min-h-0 flex-1 flex-col px-2.5 py-2">
+              <p className="ds-caption font-semibold leading-snug line-clamp-2">{entry.label}</p>
+              {height >= WEEK_H * 2 && (
+                <p className="ds-caption mt-1 leading-tight opacity-60">
+                  {FMT_SHORT.format(startDate)} – {FMT_SHORT.format(endDate)}
+                </p>
               )}
-              {/* Label — wraps to 2 lines, font scales with block width */}
-              {!isBar && (
-                <span
-                  className="font-medium leading-tight overflow-hidden"
-                  style={{
-                    fontSize,
-                    lineHeight: '1.2',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    paddingLeft: 5,
-                    paddingRight: 14,
-                    maxHeight: '2.5em',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {entry.label}
-                </span>
-              )}
-
-              {/* Remove — hover only, top-right corner */}
-              {!isBar && (
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => onRemove(entry.id)}
-                  className="absolute top-0.5 right-3 hidden group-hover:flex size-3 items-center justify-center rounded opacity-60 hover:opacity-100"
-                >
-                  <X className="size-2" />
-                </button>
-              )}
-
-              {/* Resize handle — right edge */}
-              <div
-                className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize flex items-center justify-center"
-                onMouseDown={(e) => onMouseDownResize(e, entry)}
-              >
-                <div className={`w-px h-3/5 rounded-full opacity-30 group-hover:opacity-70 transition-opacity ${meta.text === 'text-background' ? 'bg-background' : 'bg-foreground'}`} />
-              </div>
             </div>
-          )
-        })}
-      </div>
+
+            {/* Resize handle */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-2.5 cursor-row-resize flex items-end justify-center pb-0.5"
+              onMouseDown={(e) => onMouseDownResize(e, entry)}
+            >
+              <div className={`h-px w-8 rounded-full opacity-30 group-hover:opacity-60 transition-opacity ${meta.text === 'text-background' ? 'bg-background' : 'bg-foreground'}`} />
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────
+// ── Main component ─────────────────────────────────────────────────────
+
+function defaultHandIn(): string {
+  const d = addWeeks(new Date(), 20)
+  return d.toISOString().slice(0, 10)
+}
 
 export function CreateTimeline() {
-  const { timeline, setTimeline, completeFeature, uncompleteFeature } = useThesisStore()
+  const { timeline, setTimeline, completeFeature, uncompleteFeature, tasks } = useThesisStore()
+  const isDone = tasks.some((t) => t.featureId === 'create-timeline' && t.status === 'done')
 
   const [entries, setEntries] = useState<TimelineEntry[]>(() =>
     timeline.length > 0 ? timeline : DEFAULT_TIMELINE.map((e) => ({ ...e }))
   )
-  const [saved, setSaved] = useState(timeline.length > 0)
-  const gridRef = useRef<HTMLDivElement>(null)
-  const [gridWidth, setGridWidth] = useState(800)
-  const idCounter = useRef(200)
+  const [handInStr, setHandInStr] = useState<string>(defaultHandIn)
   const [customLabel, setCustomLabel] = useState('')
   const [customCategory, setCustomCategory] = useState<Category>('research')
+  const idCounter = useRef(200)
 
-  // Measure grid width
-  useEffect(() => {
-    const el = gridRef.current
-    if (!el) return
-    const obs = new ResizeObserver(() => {
-      // width minus the row-label column (120px)
-      setGridWidth(el.offsetWidth - 120)
-    })
-    obs.observe(el)
-    setGridWidth(el.offsetWidth - 120)
-    return () => obs.disconnect()
-  }, [])
+  // popup state
+  const [editPopup, setEditPopup] = useState<PopupState | null>(null)
+  const [newPopup, setNewPopup] = useState<{
+    category: Category; week: number; duration: number
+    anchorTop: number; anchorLeft: number
+  } | null>(null)
+
+  const handIn = new Date(handInStr + 'T12:00:00')
 
   const updateEntry = useCallback((id: string, week: number, duration: number) => {
-    setEntries((prev) => {
-      const entry = prev.find((e) => e.id === id)
-      if (!entry) return prev
-      const updated = prev.map((e) => e.id === id ? { ...e, week, duration } : e)
-      return pushNeighbours(updated, id, entry.category)
-    })
-    setSaved(false)
+    setEntries((prev) => prev.map((e) => e.id === id ? { ...e, week, duration } : e))
   }, [])
 
-  const removeEntry = useCallback((id: string) => {
+  const updateEntryFields = useCallback((id: string, changes: Partial<Pick<TimelineEntry, 'label' | 'category' | 'week' | 'duration'>>) => {
+    setEntries((prev) => prev.map((e) => e.id === id ? { ...e, ...changes } : e))
+  }, [])
+
+  const deleteEntry = useCallback((id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id))
-    setSaved(false)
   }, [])
 
   const addFromPalette = (item: { label: string; category: Category; duration: number }) => {
-    const rowEntries = entries.filter((e) => e.category === item.category)
-    const lastEnd = rowEntries.length > 0 ? Math.max(...rowEntries.map((e) => e.week + e.duration - 1)) : 0
+    const colEntries = entries.filter((e) => e.category === item.category)
+    const lastEnd = colEntries.length > 0 ? Math.max(...colEntries.map((e) => e.week + e.duration - 1)) : 0
     const week = clamp(lastEnd + 1, 1, TOTAL_WEEKS - item.duration + 1)
-    const newEntry: TimelineEntry = {
-      id: String(idCounter.current++),
-      label: item.label,
-      category: item.category,
-      week,
-      duration: item.duration,
-    }
-    setEntries((prev) => pushNeighbours([...prev, newEntry], newEntry.id, item.category))
-    setSaved(false)
+    setEntries((prev) => [...prev, {
+      id: String(idCounter.current++), label: item.label, category: item.category, week, duration: item.duration,
+    }])
   }
 
   const addCustomItem = () => {
@@ -338,43 +623,80 @@ export function CreateTimeline() {
 
   const resetToDefault = () => {
     setEntries(DEFAULT_TIMELINE.map((e) => ({ ...e, id: String(idCounter.current++) })))
-    setSaved(false)
   }
 
   const handleSave = () => {
     setTimeline(entries)
     completeFeature('create-timeline')
-    setSaved(true)
   }
 
-  const totalH = CATEGORIES.length * ROW_H
+  const handleOpenPopup = useCallback((id: string, anchorTop: number, anchorLeft: number) => {
+    setEditPopup({ entryId: id, anchorTop, anchorLeft })
+  }, [])
+
+  const handleCommitDraw = useCallback((category: Category, week: number, duration: number, anchorTop: number, anchorLeft: number) => {
+    setNewPopup({ category, week, duration, anchorTop, anchorLeft })
+  }, [])
+
+  const handleConfirmNew = (label: string, category: Category) => {
+    if (!newPopup) return
+    setEntries((prev) => [...prev, {
+      id: String(idCounter.current++),
+      label,
+      category,
+      week: newPopup.week,
+      duration: newPopup.duration,
+    }])
+  }
+
+  // month label markers
+  const monthLabels: { week: number; label: string }[] = []
+  for (let w = 1; w <= TOTAL_WEEKS; w++) {
+    const label = formatMonthLabel(handIn, w)
+    if (w === 1 || label !== formatMonthLabel(handIn, w - 1)) {
+      monthLabels.push({ week: w, label })
+    }
+  }
+
+  const editEntry = editPopup ? entries.find((e) => e.id === editPopup.entryId) : null
 
   return (
-    <div className="mx-auto w-full ds-layout-narrow">
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="ds-title-md text-foreground">Create Timeline</h2>
-          <p className="ds-body mt-2 text-muted-foreground">
-            Your {TOTAL_WEEKS}-week thesis plan. Drag blocks to reposition, drag the right edge to resize.
-            Neighbours shift automatically to fill gaps.
+          <p className="ds-body mt-1 text-muted-foreground">
+            Set your hand-in date, then drag across empty space to create blocks. Click any block to edit it.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={resetToDefault}
-          className="ds-caption mt-1 flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-        >
-          <RotateCcw className="size-3" />
-          Reset to example
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+            <Flag className="size-3.5 shrink-0 text-muted-foreground" />
+            <label className="ds-caption text-muted-foreground whitespace-nowrap">Hand-in date</label>
+            <input
+              type="date"
+              value={handInStr}
+              onChange={(e) => setHandInStr(e.target.value)}
+              className="ds-caption border-0 bg-transparent text-foreground focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={resetToDefault}
+            className="ds-caption flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-2 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            <RotateCcw className="size-3" />
+            Reset
+          </button>
+        </div>
       </div>
 
       {/* Palette */}
-      <div data-tutorial="timeline-palette" className="mb-5 rounded-xl border border-border bg-background p-4">
+      <div className="mb-5 rounded-xl border border-border bg-background p-4">
         <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
           <Calendar className="size-3" />
-          Add elements — click to append to the right of that row
+          Quick-add — click a chip to append to that column
         </p>
         <div className="flex flex-wrap gap-2">
           {PALETTE.map((item) => {
@@ -393,8 +715,6 @@ export function CreateTimeline() {
             )
           })}
         </div>
-
-        {/* Custom element input */}
         <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
           <input
             type="text"
@@ -428,74 +748,104 @@ export function CreateTimeline() {
         </div>
       </div>
 
-      {/* Gantt grid */}
-      <div className="overflow-hidden rounded-xl border border-border bg-background" ref={gridRef}>
-        {/* Week header row */}
-        <div className="flex border-b border-border bg-secondary/50">
-          {/* Label column header */}
-          <div className="shrink-0 border-r border-border px-3 py-2" style={{ width: 120 }}>
-            <span className="ds-caption text-muted-foreground/60">Category</span>
+      {/* Timeline grid */}
+      <div className="overflow-x-auto rounded-xl border border-border bg-background">
+        <div style={{ minWidth: LABEL_W + CATEGORIES.length * COL_W + 1 }}>
+
+          {/* Sticky column headers */}
+          <div className="flex border-b border-border bg-secondary/50" style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+            <div className="shrink-0 border-r border-border px-3 py-3" style={{ width: LABEL_W }}>
+              <span className="ds-caption text-muted-foreground/60">Week</span>
+            </div>
+            {CATEGORIES.map((cat) => {
+              const meta = CATEGORY_META[cat]
+              return (
+                <div
+                  key={cat}
+                  className={`flex shrink-0 items-center justify-center gap-2 border-r border-border py-3 ${meta.headerBg}`}
+                  style={{ width: COL_W }}
+                >
+                  <span className={cat === 'milestone' ? 'text-foreground' : 'text-muted-foreground'}>{meta.icon}</span>
+                  <span className={`ds-label ${cat === 'milestone' ? 'text-foreground' : 'text-muted-foreground'}`}>{meta.label}</span>
+                </div>
+              )
+            })}
           </div>
-          {/* Week numbers */}
-          <div className="relative flex-1" style={{ height: HEADER_H }}>
-            {Array.from({ length: TOTAL_WEEKS }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute flex items-center justify-center"
-                style={{
-                  left: `${(i / TOTAL_WEEKS) * 100}%`,
-                  width: `${(1 / TOTAL_WEEKS) * 100}%`,
-                  top: 0,
-                  height: HEADER_H,
-                }}
-              >
-                <span className="ds-caption text-muted-foreground/70">W{i + 1}</span>
-              </div>
+
+          {/* Body */}
+          <div className="flex" style={{ height: TOTAL_WEEKS * WEEK_H }}>
+
+            {/* Week labels */}
+            <div className="relative shrink-0 border-r border-border" style={{ width: LABEL_W }}>
+              {Array.from({ length: TOTAL_WEEKS }).map((_, i) => {
+                const weekNum = i + 1
+                const isHandIn = weekNum === TOTAL_WEEKS
+                const monthChange = monthLabels.find((m) => m.week === weekNum)
+                const startDate = weekStartDate(handIn, weekNum)
+
+                return (
+                  <div
+                    key={weekNum}
+                    className={`absolute left-0 right-0 border-b border-border/40 px-2 ${isHandIn ? 'bg-foreground/5' : ''}`}
+                    style={{ top: i * WEEK_H, height: WEEK_H }}
+                  >
+                    {monthChange && (
+                      <p className="ds-caption pt-1 font-semibold text-foreground/50 leading-none">{monthChange.label}</p>
+                    )}
+                    <p
+                      className={`ds-caption leading-tight ${isHandIn ? 'font-semibold text-foreground' : 'text-muted-foreground/70'}`}
+                      style={{ paddingTop: monthChange ? 2 : 14 }}
+                    >
+                      W{weekNum}
+                    </p>
+                    <p className="ds-caption text-muted-foreground/50 leading-none" style={{ fontSize: 9 }}>
+                      {FMT_SHORT.format(startDate)}
+                    </p>
+                    {isHandIn && (
+                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 ds-caption rounded-full bg-foreground px-1.5 py-0.5 text-background" style={{ fontSize: 8 }}>
+                        Hand-in
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Category columns */}
+            {CATEGORIES.map((cat) => (
+              <GanttColumn
+                key={cat}
+                category={cat}
+                entries={entries.filter((e) => e.category === cat)}
+                handIn={handIn}
+                onUpdate={updateEntry}
+                onDelete={deleteEntry}
+                onOpenPopup={handleOpenPopup}
+                onCommitDraw={handleCommitDraw}
+              />
             ))}
           </div>
-        </div>
-
-        {/* Rows */}
-        <div style={{ height: totalH }}>
-          {CATEGORIES.map((cat) => (
-            <GanttRow
-              key={cat}
-              category={cat}
-              entries={entries.filter((e) => e.category === cat)}
-              totalWeeks={TOTAL_WEEKS}
-              gridWidth={gridWidth}
-              onUpdate={updateEntry}
-              onRemove={removeEntry}
-            />
-          ))}
         </div>
       </div>
 
       {/* Footer */}
       <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
         <p className="ds-small text-muted-foreground">
-          {entries.length} block{entries.length !== 1 ? 's' : ''}
-          {entries.length > 0 && ` · W${Math.min(...entries.map((e) => e.week))}–W${Math.max(...entries.map((e) => e.week + e.duration - 1))}`}
+          {entries.length} block{entries.length !== 1 ? 's' : ''} ·{' '}
+          Hand-in {FMT_FULL.format(handIn)}
         </p>
         <AnimatePresence mode="wait">
-          {saved ? (
-            <motion.div
-              key="saved"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2"
-            >
+          {isDone ? (
+            <motion.div key="saved" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2">
               <span className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
-                <Check className="size-3.5" />
-                Done
+                <Check className="size-3.5" />Saved
               </span>
               <button
                 type="button"
-                onClick={() => { uncompleteFeature('create-timeline'); setSaved(false) }}
+                onClick={() => uncompleteFeature('create-timeline')}
                 className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
               >
-                <RotateCcw className="size-3" />
-                Undo
+                <RotateCcw className="size-3" />Undo
               </button>
             </motion.div>
           ) : (
@@ -503,14 +853,42 @@ export function CreateTimeline() {
               key="save"
               type="button"
               onClick={handleSave}
-              className="ds-caption flex items-center gap-1.5 rounded-full border border-foreground/30 px-3 py-1.5 text-foreground transition-colors hover:bg-foreground hover:text-background"
+              className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-background transition-colors hover:bg-foreground/80"
             >
-              <Check className="size-3.5" />
-              Mark as done
+              <Check className="size-3.5" />Save timeline
             </motion.button>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Popups */}
+      <AnimatePresence>
+        {editPopup && editEntry && (
+          <EntryPopup
+            key="edit"
+            entry={editEntry}
+            handIn={handIn}
+            anchorTop={editPopup.anchorTop}
+            anchorLeft={editPopup.anchorLeft}
+            onUpdate={updateEntryFields}
+            onDelete={deleteEntry}
+            onClose={() => setEditPopup(null)}
+          />
+        )}
+        {newPopup && (
+          <NewEntryPopup
+            key="new"
+            category={newPopup.category}
+            week={newPopup.week}
+            duration={newPopup.duration}
+            handIn={handIn}
+            anchorTop={newPopup.anchorTop}
+            anchorLeft={newPopup.anchorLeft}
+            onConfirm={handleConfirmNew}
+            onClose={() => setNewPopup(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
