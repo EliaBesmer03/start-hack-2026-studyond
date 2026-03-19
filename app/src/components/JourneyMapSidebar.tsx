@@ -10,6 +10,7 @@ import logo from '@/assets/studyond.svg'
 export type FeatureId =
   | 'topic-explore'
   | 'profile-setup'
+  | 'intelligence-survey'
   | 'topic-match'
   | 'supervisor-search'
   | 'final-decision'
@@ -34,8 +35,9 @@ export interface FeatureItem {
 
 const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   orientation: [
-    { id: 'profile-setup',   label: 'Thesis Profile',   description: 'Set up your interests, field, and constraints' },
-    { id: 'topic-explore',   label: 'Explore Topics',   description: 'Browse curated topics and company briefs' },
+    { id: 'profile-setup',      label: 'Thesis Profile',        description: 'Set up your interests, field, and constraints' },
+    { id: 'intelligence-survey', label: 'Learning Profile',      description: 'Optional: discover your personality & academic strengths' },
+    { id: 'topic-explore',      label: 'Explore Topics',        description: 'Browse curated topics and company briefs' },
   ],
   'topic-discovery': [
     { id: 'topic-explore',     label: 'Explore Topics',    description: 'Browse and bookmark up to 3 favourite topics' },

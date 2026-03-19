@@ -12,6 +12,7 @@ import { InterviewPartners } from '@/components/features/InterviewPartners'
 import { ThesisTwin } from '@/components/features/ThesisTwin'
 import { DraftReader } from '@/components/features/DraftReader'
 import { ProfileSetup } from '@/components/features/ProfileSetup'
+import { IntelligenceSurvey } from '@/components/features/IntelligenceSurvey'
 import { TopicExplore } from '@/components/features/TopicExplore'
 import { SupervisorSearch } from '@/components/features/SupervisorSearch'
 import { CoPilotFeature } from '@/components/features/CoPilotFeature'
@@ -195,6 +196,7 @@ function GuidelinesDrawer({ onClose }: { onClose: () => void }) {
 
 const FEATURE_LABELS: Record<FeatureId, string> = {
   'profile-setup':        'Thesis Profile',
+  'intelligence-survey':  'Learning Profile',
   'topic-explore':        'Explore Topics',
   'topic-match':          'Smart Match',
   'supervisor-search':    'Find Supervisors',
@@ -228,6 +230,7 @@ function FeaturePane({
   if (featureId === 'draft-reader') return <DraftReader />
   if (featureId === 'thesis-alumni') return <ThesisAlumni />
   if (featureId === 'profile-setup') return <ProfileSetup />
+  if (featureId === 'intelligence-survey') return <IntelligenceSurvey />
   if (featureId === 'topic-explore') return <TopicExplore onOpenCoPilot={onOpenCoPilot} />
   if (featureId === 'supervisor-search') return <SupervisorSearch onOpenCoPilot={onOpenCoPilot} />
   if (featureId === 'final-decision') return <FinalDecision />
