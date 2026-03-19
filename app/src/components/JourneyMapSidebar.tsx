@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Clock, LogOut, LayoutDashboard } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, LogOut, LayoutDashboard } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
 import type { ThesisStage } from '@/types/thesis'
@@ -69,13 +69,6 @@ export const ORDERED_FEATURES: FeatureId[] = (
   Object.values(STAGE_FEATURES) as FeatureItem[][]
 ).flat().map((f) => f.id)
 
-const STAGE_TIME: Record<ThesisStage, string> = {
-  orientation:         '1–2 weeks',
-  'topic-discovery':   '2–4 weeks',
-  'supervisor-search': '2–3 weeks',
-  planning:            '8–16 weeks',
-  'execution-writing': '4–8 weeks',
-}
 
 /* ── Props ─────────────────────────────────────────────────────────── */
 
@@ -162,12 +155,6 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset, onS
                   <p className={`ds-label truncate leading-tight ${isFuture ? 'text-muted-foreground' : 'text-foreground'}`}>
                     {stage.label}
                   </p>
-                  {isActive && (
-                    <p className="ds-caption text-muted-foreground">
-                      <Clock className="mr-0.5 inline size-2.5" />
-                      {STAGE_TIME[stage.id]}
-                    </p>
-                  )}
                 </div>
 
                 {/* Expand chevron */}

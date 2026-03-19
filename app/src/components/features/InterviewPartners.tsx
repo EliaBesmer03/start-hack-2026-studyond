@@ -607,6 +607,7 @@ export function InterviewPartners() {
         .filter((r) => r.score > 10)
         .sort((a, b) => b.score - a.score)
         .slice(0, 4)
+      scored.forEach(({ expert }) => addAcceptedExpert(expert.id))
       setResults(scored)
       setStep(4)
     }
