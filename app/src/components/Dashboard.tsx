@@ -279,7 +279,7 @@ function FeaturePane({
 /* ── Dashboard ─────────────────────────────────────────────────────── */
 
 export function Dashboard() {
-  const { resetProfile, celebrateStage, clearCelebration, universityGuidelines } = useThesisStore()
+  const { resetProfile, celebrateStage, clearCelebration } = useThesisStore()
   const [activeFeature, setActiveFeature] = useState<FeatureId | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
@@ -377,7 +377,7 @@ export function Dashboard() {
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+        <header className="flex h-14 shrink-0 items-center justify-between px-4">
           {/* Left: hamburger (mobile) */}
           <div className="flex items-center gap-3">
             <button
@@ -394,25 +394,6 @@ export function Dashboard() {
 
           {/* Right: action buttons */}
           <div className="flex items-center gap-2">
-            {/* University guidelines button */}
-            <button
-              type="button"
-              onClick={() => { setGuidelinesOpen((o) => !o); setChatOpen(false) }}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 ds-caption font-medium transition-all duration-200 ${
-                guidelinesOpen || universityGuidelines
-                  ? 'border-foreground/40 bg-secondary text-foreground'
-                  : 'border-border bg-background text-muted-foreground hover:border-foreground/30 hover:text-foreground'
-              }`}
-              aria-label="University guidelines"
-              title="Paste your university thesis guidelines"
-            >
-              <BookOpen className="size-3.5" />
-              <span className="hidden sm:inline">Guidelines</span>
-              {universityGuidelines && (
-                <span className="flex size-1.5 rounded-full bg-foreground" />
-              )}
-            </button>
-
             {/* Demo reset button */}
             <button
               type="button"
@@ -421,7 +402,7 @@ export function Dashboard() {
                   resetProfile()
                 }
               }}
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption font-medium text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption font-medium text-foreground transition-all hover:border-foreground/30"
               aria-label="Reset demo"
               title="Reset demo"
             >

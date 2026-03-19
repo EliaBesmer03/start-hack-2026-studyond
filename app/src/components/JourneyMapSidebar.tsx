@@ -99,8 +99,8 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
   return (
     <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-border bg-background">
       {/* Logo + wordmark */}
-      <div className="flex h-14 shrink-0 items-center border-b border-border px-4">
-        <img src={logo} alt="Studyond" className="h-5 w-auto" />
+      <div className="flex h-14 shrink-0 items-center px-4">
+        <img src={logo} alt="Studyond" className="h-7 w-auto" />
       </div>
 
       {/* Scrollable stage list */}
@@ -199,7 +199,7 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
       </nav>
 
       {/* Bottom: user identity card */}
-      <div className="border-t border-border p-3">
+      <div className="p-3">
         <div className="flex items-center gap-2.5 rounded-xl bg-secondary px-3 py-2.5">
           {/* Avatar */}
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground ds-badge font-semibold text-background">
