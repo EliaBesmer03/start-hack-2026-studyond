@@ -369,10 +369,13 @@ export const useThesisStore = create<ThesisState>()(
           const allDone = stageTasks.length > 0 && stageTasks.every((t) => t.status === 'done')
           const shouldAdvance = isGate || allDone
           const next = shouldAdvance ? nextStage(currentStage) : null
+          // Only set celebrateStage if not already celebrating something — avoids overwrite races.
+          // For the last stage (no next), still celebrate when allDone.
+          const shouldCelebrate = shouldAdvance && !s.celebrateStage
           return {
             tasks: updatedTasks,
             profile: next ? { ...s.profile, stage: next } : s.profile,
-            celebrateStage: next ? currentStage : s.celebrateStage,
+            celebrateStage: shouldCelebrate ? currentStage : s.celebrateStage,
           }
         }),
       uncompleteFeature: (featureId) =>
