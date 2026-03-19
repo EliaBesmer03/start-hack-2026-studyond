@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowRight, Check, Filter, GripVertical } from 'lucide-react'
+import { ArrowRight, Check, Filter, GripVertical, AlertCircle, X } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { Task, TaskStatus } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
@@ -51,7 +51,7 @@ function TaskCard({
   overlay?: boolean
   onOpen?: (featureId: FeatureId) => void
 }) {
-  const { updateTaskStatus } = useThesisStore()
+  const { updateTaskStatus, dismissNudge } = useThesisStore()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
   const tag = STAGE_TAG[task.stageId]
   const isDone = task.status === 'done'
@@ -95,6 +95,22 @@ function TaskCard({
           </p>
         )}
       </div>
+
+      {/* Nudge banner */}
+      {!isDone && task.nudge && !overlay && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2">
+          <AlertCircle className="mt-0.5 size-3 shrink-0 text-amber-600" />
+          <p className="ds-caption flex-1 text-amber-700 leading-snug">{task.nudge}</p>
+          <button
+            type="button"
+            onClick={() => dismissNudge(task.id)}
+            className="shrink-0 text-amber-500 hover:text-amber-700"
+            aria-label="Dismiss nudge"
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
 
       {/* Bottom row: open feature + advance status */}
       {!overlay && (
@@ -196,10 +212,12 @@ function KanbanColumn({
 function StageFilterPill({
   stageId,
   selected,
+  count,
   onToggle,
 }: {
   stageId: ThesisStage
   selected: boolean
+  count: number
   onToggle: () => void
 }) {
   const tag = STAGE_TAG[stageId]
@@ -215,7 +233,41 @@ function StageFilterPill({
     >
       {selected && <Check className="size-3" strokeWidth={2.5} />}
       {tag.label}
+      <span className="opacity-60">{count}</span>
     </button>
+  )
+}
+
+/* ── Stage progress summary ────────────────────────────────────────── */
+
+function StageProgress({ tasks }: { tasks: Task[] }) {
+  const stageIds = [...new Set(tasks.map((t) => t.stageId))] as ThesisStage[]
+  return (
+    <div className="mb-6 flex flex-wrap gap-3">
+      {stageIds.map((sid) => {
+        const stageTasks = tasks.filter((t) => t.stageId === sid)
+        const done = stageTasks.filter((t) => t.status === 'done').length
+        const total = stageTasks.length
+        const pct = Math.round((done / total) * 100)
+        const tag = STAGE_TAG[sid]
+        return (
+          <div key={sid} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+            <span className={`ds-caption rounded-full px-2 py-0.5 font-medium ${tag.cls}`}>
+              {tag.label}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-foreground transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="ds-caption text-muted-foreground">{done}/{total}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -266,7 +318,7 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
   return (
     <div className="flex min-h-full flex-col">
       {/* Header + filter */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Thesis Board</p>
           <h2 className="ds-title-md mt-1 text-foreground">Your tasks</h2>
@@ -275,18 +327,22 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="ds-caption flex items-center gap-1 text-muted-foreground">
             <Filter className="size-3" />
-            Filter by stage
+            Filter
           </span>
           {allStageIds.map((id) => (
             <StageFilterPill
               key={id}
               stageId={id}
               selected={selectedStages.has(id)}
+              count={tasks.filter((t) => t.stageId === id).length}
               onToggle={() => toggleStage(id)}
             />
           ))}
         </div>
       </div>
+
+      {/* Stage progress bar summary */}
+      <StageProgress tasks={tasks} />
 
       {/* Board */}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

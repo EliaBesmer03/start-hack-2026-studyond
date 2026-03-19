@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@mock': path.resolve(__dirname, '../mock-data'),
     },
+  },
+  server: {
+    fs: { allow: ['..'] },
   },
 })

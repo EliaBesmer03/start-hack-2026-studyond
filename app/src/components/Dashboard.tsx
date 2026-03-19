@@ -1,23 +1,25 @@
 import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Sparkles } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import { useThesisStore } from '@/stores/thesis-store'
 import { JourneyMapSidebar } from '@/components/JourneyMapSidebar'
 import type { FeatureId } from '@/components/JourneyMapSidebar'
 import { ThesisBoard } from '@/components/ThesisBoard'
+import { CoPilotChat } from '@/components/CoPilotChat'
 
 /* ── Feature pane placeholders ─────────────────────────────────────── */
 
 const FEATURE_LABELS: Record<FeatureId, string> = {
-  'profile-setup':    'Thesis Profile',
-  'topic-explore':    'Explore Topics',
-  'topic-match':      'Topic Match',
-  'supervisor-search':'Find Supervisors',
-  'copilot-planning': 'Planning Co-Pilot',
-  'methodology':      'Methodology Guide',
-  'copilot-execution':'Execution Co-Pilot',
+  'profile-setup':     'Thesis Profile',
+  'topic-explore':     'Explore Topics',
+  'topic-match':       'Topic Match',
+  'supervisor-search': 'Find Supervisors',
+  'copilot-planning':  'Planning Co-Pilot',
+  'methodology':       'Methodology Guide',
+  'copilot-execution': 'Execution Co-Pilot',
   'interview-partners':'Interview Partners',
-  'copilot-writing':  'Writing Co-Pilot',
-  'draft-reader':     'Draft Reader',
+  'copilot-writing':   'Writing Co-Pilot',
+  'draft-reader':      'Draft Reader',
 }
 
 function FeaturePane({ featureId }: { featureId: FeatureId }) {
@@ -40,6 +42,7 @@ export function Dashboard() {
   const { resetProfile } = useThesisStore()
   const [activeFeature, setActiveFeature] = useState<FeatureId | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
@@ -71,38 +74,65 @@ export function Dashboard() {
       {/* ── Main area ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
 
-        {/* Top bar (mobile only) */}
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 md:hidden">
+        {/* Top bar — mobile hamburger + shared Co-Pilot button */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+          {/* Left: hamburger (mobile) or spacer */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className="text-muted-foreground md:hidden"
+            >
+              {mobileSidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+            <span className="ds-label text-foreground md:hidden">
+              {activeFeature ? FEATURE_LABELS[activeFeature] : 'Board'}
+            </span>
+          </div>
+
+          {/* Right: Co-Pilot toggle button */}
           <button
             type="button"
-            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-            className="text-muted-foreground"
+            onClick={() => setChatOpen((o) => !o)}
+            className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 ds-caption font-medium transition-all duration-200 ${
+              chatOpen
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border bg-background text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+            }`}
+            aria-label="Toggle Co-Pilot"
           >
-            {mobileSidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            <Sparkles className="size-3.5" />
+            Co-Pilot
           </button>
-          <span className="ds-label text-foreground">
-            {activeFeature ? FEATURE_LABELS[activeFeature] : 'Board'}
-          </span>
         </header>
 
-        {/* Scrollable content */}
-        <main className="flex-1 overflow-y-auto px-5 py-6 lg:px-8">
-          {activeFeature === null ? (
-            <ThesisBoard onFeatureOpen={(id) => setActiveFeature(id)} />
-          ) : (
-            <div className="flex min-h-full flex-col">
-              {/* Breadcrumb back to board */}
-              <button
-                type="button"
-                onClick={() => setActiveFeature(null)}
-                className="ds-caption mb-6 flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                ← Board
-              </button>
-              <FeaturePane featureId={activeFeature} />
-            </div>
-          )}
-        </main>
+        {/* Content row: main + chat panel side by side */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Scrollable main content */}
+          <main className="flex-1 overflow-y-auto px-5 py-6 lg:px-8">
+            {activeFeature === null ? (
+              <ThesisBoard onFeatureOpen={(id) => setActiveFeature(id)} />
+            ) : (
+              <div className="flex min-h-full flex-col">
+                <button
+                  type="button"
+                  onClick={() => setActiveFeature(null)}
+                  className="ds-caption mb-6 flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  ← Board
+                </button>
+                <FeaturePane featureId={activeFeature} />
+              </div>
+            )}
+          </main>
+
+          {/* Chat panel — slides in from right */}
+          <AnimatePresence>
+            {chatOpen && (
+              <CoPilotChat onClose={() => setChatOpen(false)} />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )

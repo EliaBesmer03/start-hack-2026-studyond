@@ -11,10 +11,11 @@ export interface Task {
   description: string
   featureId: string          // links to a sidebar feature entry point
   status: TaskStatus
+  nudge?: string             // optional overdue / attention nudge message
 }
 
 const DEFAULT_TASKS: Task[] = [
-  // Orientation
+  // ── Orientation ──────────────────────────────────────────────────
   {
     id: 'o1',
     stageId: 'orientation',
@@ -26,77 +27,155 @@ const DEFAULT_TASKS: Task[] = [
   {
     id: 'o2',
     stageId: 'orientation',
-    title: 'Explore Topic Areas',
-    description: 'Browse curated company briefs and academic directions that match your profile.',
+    title: 'Browse 3+ Topic Areas',
+    description: 'Explore curated company briefs and academic directions that match your profile.',
     featureId: 'topic-explore',
     status: 'ready',
   },
-  // Topic & Supervisor
+  {
+    id: 'o3',
+    stageId: 'orientation',
+    title: 'Read 2 Company Topic Briefs',
+    description: 'Understand what companies are looking for and how collaboration works.',
+    featureId: 'topic-explore',
+    status: 'ready',
+  },
+
+  // ── Topic & Supervisor ───────────────────────────────────────────
   {
     id: 't1',
     stageId: 'topic-discovery',
-    title: 'Find Your Topic Match',
-    description: 'AI-matched topics ranked by fit with your background and interests.',
+    title: 'Shortlist 3 Topics',
+    description: 'Use the AI matcher to narrow down to your top 3 and understand why they fit.',
     featureId: 'topic-match',
     status: 'ready',
   },
   {
     id: 't2',
     stageId: 'topic-discovery',
-    title: 'Search for Supervisors',
-    description: 'Identify professors aligned with your research direction and send outreach.',
+    title: 'Apply to 1–2 Company Topics',
+    description: 'Submit your interest to company-posted topics before spots fill up.',
+    featureId: 'topic-match',
+    status: 'ready',
+  },
+  {
+    id: 't3',
+    stageId: 'topic-discovery',
+    title: 'Identify 3 Potential Supervisors',
+    description: 'Search professors aligned with your research direction.',
     featureId: 'supervisor-search',
     status: 'ready',
   },
-  // Planning
+  {
+    id: 't4',
+    stageId: 'topic-discovery',
+    title: 'Send First Supervisor Outreach',
+    description: 'Draft and send a personalised email — Co-Pilot can help you write it.',
+    featureId: 'supervisor-search',
+    status: 'ready',
+    nudge: 'Outreach sent over 2 weeks ago with no reply — want Co-Pilot to help you follow up?',
+  },
+
+  // ── Planning ─────────────────────────────────────────────────────
   {
     id: 'p1',
     stageId: 'supervisor-search',
-    title: 'Draft Your Proposal with Co-Pilot',
-    description: 'AI-guided walkthrough: research question, methodology, and timeline.',
-    featureId: 'copilot-planning',
+    title: 'Confirm Research Methodology',
+    description: 'Qualitative vs quantitative — Co-Pilot will help you decide based on your topic.',
+    featureId: 'methodology',
     status: 'ready',
   },
   {
     id: 'p2',
     stageId: 'supervisor-search',
-    title: 'Choose Your Methodology',
-    description: 'Qualitative vs. quantitative decision support grounded in your topic.',
-    featureId: 'methodology',
+    title: 'Draft Thesis Proposal',
+    description: 'AI-guided walkthrough: research question, methodology, and timeline.',
+    featureId: 'copilot-planning',
     status: 'ready',
   },
-  // Execution
+  {
+    id: 'p3',
+    stageId: 'supervisor-search',
+    title: 'Agree Milestones with Supervisor',
+    description: 'Align on key deadlines — submission dates, check-ins, draft reviews.',
+    featureId: 'copilot-planning',
+    status: 'ready',
+    nudge: 'Your planning deadline passed 3 days ago — want Co-Pilot to help you catch up?',
+  },
+  {
+    id: 'p4',
+    stageId: 'supervisor-search',
+    title: 'Register Thesis at University',
+    description: 'Complete the official registration before your university deadline.',
+    featureId: 'copilot-planning',
+    status: 'ready',
+  },
+
+  // ── Execution ─────────────────────────────────────────────────────
   {
     id: 'e1',
     stageId: 'planning',
-    title: 'Research with Co-Pilot',
-    description: 'AI assistance with literature review, data questions, and progress check-ins.',
+    title: 'Conduct Literature Review',
+    description: 'Co-Pilot helps you structure sources and identify gaps in existing research.',
     featureId: 'copilot-execution',
     status: 'ready',
   },
   {
     id: 'e2',
     stageId: 'planning',
-    title: 'Find Interview Partners',
+    title: 'Find and Schedule Interview Partners',
     description: 'Match with domain experts for primary research interviews.',
     featureId: 'interview-partners',
     status: 'ready',
   },
-  // Writing & Finalization
+  {
+    id: 'e3',
+    stageId: 'planning',
+    title: 'Gather Primary Data',
+    description: 'Conduct your surveys, experiments, or interviews — log progress here.',
+    featureId: 'copilot-execution',
+    status: 'ready',
+  },
+  {
+    id: 'e4',
+    stageId: 'planning',
+    title: 'Complete First Draft of Analysis',
+    description: 'Turn your data into findings — Co-Pilot can review structure and logic.',
+    featureId: 'copilot-execution',
+    status: 'ready',
+  },
+
+  // ── Writing & Finalization ────────────────────────────────────────
   {
     id: 'w1',
     stageId: 'execution-writing',
-    title: 'Write with Co-Pilot',
-    description: 'Draft support, supervisor feedback integration, and submission prep.',
+    title: 'Write Introduction and Conclusion',
+    description: 'Frame your thesis with clarity — Co-Pilot reviews scope and argument.',
     featureId: 'copilot-writing',
     status: 'ready',
   },
   {
     id: 'w2',
     stageId: 'execution-writing',
+    title: 'Incorporate Supervisor Feedback',
+    description: 'Systematically address all comments before your next check-in.',
+    featureId: 'copilot-writing',
+    status: 'ready',
+  },
+  {
+    id: 'w3',
+    stageId: 'execution-writing',
     title: 'Request a Draft Reader',
-    description: 'Get matched with an expert or alumni who reviews your draft.',
+    description: 'Get matched with an expert or alumni who reviews a chapter and gives feedback.',
     featureId: 'draft-reader',
+    status: 'ready',
+  },
+  {
+    id: 'w4',
+    stageId: 'execution-writing',
+    title: 'Submit Final Thesis',
+    description: 'Check formatting requirements and submit before your official deadline.',
+    featureId: 'copilot-writing',
     status: 'ready',
   },
 ]
@@ -110,6 +189,7 @@ interface ThesisState {
   completeOnboarding: () => void
   resetProfile: () => void
   updateTaskStatus: (taskId: string, status: TaskStatus) => void
+  dismissNudge: (taskId: string) => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -146,6 +226,10 @@ export const useThesisStore = create<ThesisState>()(
       updateTaskStatus: (taskId, status) =>
         set((s) => ({
           tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
+        })),
+      dismissNudge: (taskId) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, nudge: undefined } : t)),
         })),
     }),
     { name: 'studyond-thesis' },
