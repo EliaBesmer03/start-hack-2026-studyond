@@ -6,8 +6,12 @@ import { JourneyMapSidebar } from '@/components/JourneyMapSidebar'
 import type { FeatureId } from '@/components/JourneyMapSidebar'
 import { ThesisBoard } from '@/components/ThesisBoard'
 import { CoPilotChat } from '@/components/CoPilotChat'
+import { SmartMatch } from '@/components/features/SmartMatch'
+import { InterviewPartners } from '@/components/features/InterviewPartners'
+import { ThesisTwin } from '@/components/features/ThesisTwin'
+import { DraftReader } from '@/components/features/DraftReader'
 
-/* ── Feature pane placeholders ─────────────────────────────────────── */
+/* ── Feature pane ──────────────────────────────────────────────────── */
 
 const FEATURE_LABELS: Record<FeatureId, string> = {
   'profile-setup':     'Thesis Profile',
@@ -20,9 +24,18 @@ const FEATURE_LABELS: Record<FeatureId, string> = {
   'interview-partners':'Interview Partners',
   'copilot-writing':   'Writing Co-Pilot',
   'draft-reader':      'Draft Reader',
+  'smart-match':       'Smart Match',
+  'thesis-twin':       'Thesis Twin',
 }
 
 function FeaturePane({ featureId }: { featureId: FeatureId }) {
+  // Fully-implemented features
+  if (featureId === 'topic-match' || featureId === 'smart-match') return <SmartMatch />
+  if (featureId === 'interview-partners') return <InterviewPartners />
+  if (featureId === 'thesis-twin') return <ThesisTwin />
+  if (featureId === 'draft-reader') return <DraftReader />
+
+  // Placeholder for features not yet built
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
       <div className="rounded-full bg-secondary px-4 py-1.5">
@@ -30,7 +43,7 @@ function FeaturePane({ featureId }: { featureId: FeatureId }) {
       </div>
       <h2 className="ds-title-md text-foreground">{FEATURE_LABELS[featureId]}</h2>
       <p className="ds-body max-w-sm text-center text-muted-foreground">
-        This feature will be fully interactive. For now it's a placeholder to show the navigation structure.
+        This feature is planned for the next sprint. The navigation structure is already in place.
       </p>
     </div>
   )

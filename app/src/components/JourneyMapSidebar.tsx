@@ -11,11 +11,13 @@ export type FeatureId =
   | 'topic-explore'
   | 'profile-setup'
   | 'topic-match'
+  | 'smart-match'
   | 'supervisor-search'
   | 'copilot-planning'
   | 'methodology'
   | 'copilot-execution'
   | 'interview-partners'
+  | 'thesis-twin'
   | 'copilot-writing'
   | 'draft-reader'
 
@@ -32,6 +34,7 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   ],
   'topic-discovery': [
     { id: 'topic-match',      label: 'Topic Match',       description: 'Get AI-matched topics based on your profile' },
+    { id: 'smart-match',      label: 'Smart Match',       description: 'Bundled topic + supervisor + company matches' },
     { id: 'supervisor-search', label: 'Find Supervisors', description: 'Search and reach out to supervisors' },
   ],
   'supervisor-search': [
@@ -41,6 +44,7 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   planning: [
     { id: 'copilot-execution',  label: 'Execution Co-Pilot',  description: 'AI help with research and data collection' },
     { id: 'interview-partners', label: 'Interview Partners',   description: 'Find and schedule expert interviews' },
+    { id: 'thesis-twin',        label: 'Thesis Twin',         description: 'Peer accountability — one student, same stage' },
   ],
   'execution-writing': [
     { id: 'copilot-writing', label: 'Writing Co-Pilot', description: 'Draft support, feedback integration' },
