@@ -692,12 +692,12 @@ export function IntelligenceSurvey() {
         </div>
 
         {/* Co-Pilot CTA */}
-        <div className="flex items-start gap-4 rounded-xl border border-border px-5 py-4">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground mt-0.5">
+        <div className="flex items-start gap-4 rounded-xl border border-border bg-ai/5 px-5 py-4">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ai mt-0.5">
             <Sparkles className="size-4 text-background" />
           </div>
           <div className="flex-1">
-            <p className="ds-label text-foreground mb-1">Want to dig deeper?</p>
+            <p className="ds-label text-ai mb-1">Want to dig deeper?</p>
             <p className="ds-body text-muted-foreground">
               The Co-Pilot has your full profile and is happy to help you interpret these results, challenge them, or explore what kinds of thesis topics might emerge from your specific combination.
             </p>
@@ -705,14 +705,17 @@ export function IntelligenceSurvey() {
         </div>
 
         {/* Retake */}
-        <button
-          type="button"
-          onClick={() => { clearSurveyAnswers(); setPhase('intro'); setStep(0); setAnswers({}) }}
-          className="self-start flex items-center gap-2 ds-caption text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <RotateCcw className="size-3.5" />
-          Retake survey
-        </button>
+        <div className="border-t border-border pt-6">
+          <p className="ds-caption text-muted-foreground mb-3">Results can change over time. Retaking the survey will replace your current profile.</p>
+          <button
+            type="button"
+            onClick={() => { clearSurveyAnswers(); setPhase('intro'); setStep(0); setAnswers({}) }}
+            className="flex items-center gap-2 rounded-full border border-border px-4 py-2.5 ds-label text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            <RotateCcw className="size-4" />
+            Retake survey
+          </button>
+        </div>
       </div>
     )
   }

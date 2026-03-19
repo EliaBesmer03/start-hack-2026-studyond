@@ -35,7 +35,14 @@ export function ProfileSetup() {
   const { profile, thesisNotes, addThesisNote, completeFeature } = useThesisStore()
   const detectedUniversity = detectUniversity(profile.email)
 
-  const [field, setField] = useState('')
+  const ONBOARDING_FIELD_MAP: Record<string, string> = {
+    business: 'Business & Economics',
+    cs: 'Computer Science & Engineering',
+    social: 'Social Sciences & Humanities',
+    science: 'Natural Sciences & Medicine',
+  }
+  const onboardingField = profile.answers.find((a) => a.questionIndex === 1)?.value
+  const [field, setField] = useState(onboardingField ? (ONBOARDING_FIELD_MAP[onboardingField] ?? '') : '')
   const [degree, setDegree] = useState('')
   const [interest, setInterest] = useState('')
   const [constraints, setConstraints] = useState('')

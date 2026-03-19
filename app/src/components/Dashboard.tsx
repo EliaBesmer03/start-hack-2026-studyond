@@ -82,7 +82,9 @@ function StageCelebration({
       >
         <div className="mb-4 flex justify-center">
           <div className="flex size-14 items-center justify-center rounded-full bg-foreground">
-            <span className="text-2xl">{isLast ? '🎓' : '✓'}</span>
+            {isLast
+              ? <span className="text-2xl">🎓</span>
+              : <Check className="size-7 text-background" strokeWidth={2.5} />}
           </div>
         </div>
         <h2 className="ds-title-md text-foreground">{copy.title}</h2>

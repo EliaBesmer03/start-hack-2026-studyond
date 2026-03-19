@@ -124,22 +124,27 @@ function GanttRow({
 }) {
   const meta = CATEGORY_META[category]
   const weekPx = gridWidth / totalWeeks
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // ── drag-move ────────────────────────────────────────────────────
-  const dragRef = useRef<{ id: string; startX: number; origWeek: number } | null>(null)
+  const dragRef = useRef<{ id: string; startX: number; origWeek: number; moved: boolean } | null>(null)
 
   const onMouseDownBlock = useCallback((e: React.MouseEvent, entry: TimelineEntry) => {
     e.preventDefault()
-    dragRef.current = { id: entry.id, startX: e.clientX, origWeek: entry.week }
+    dragRef.current = { id: entry.id, startX: e.clientX, origWeek: entry.week, moved: false }
 
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return
       const dx = ev.clientX - dragRef.current.startX
+      if (Math.abs(dx) > 3) dragRef.current.moved = true
       const dWeeks = Math.round(dx / weekPx)
       const newWeek = clamp(dragRef.current.origWeek + dWeeks, 1, totalWeeks - entry.duration + 1)
       onUpdate(dragRef.current.id, newWeek, entry.duration)
     }
     const onUp = () => {
+      if (dragRef.current && !dragRef.current.moved) {
+        setExpandedId((prev) => (prev === entry.id ? null : entry.id))
+      }
       dragRef.current = null
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
@@ -208,11 +213,17 @@ function GanttRow({
           return (
             <div
               key={entry.id}
-              className={`group absolute top-[4px] bottom-[4px] rounded-sm border select-none cursor-grab active:cursor-grabbing overflow-hidden flex items-center ${meta.bg} ${meta.text} ${meta.border}`}
+              className={`group absolute top-[4px] bottom-[4px] rounded-sm border select-none cursor-grab active:cursor-grabbing flex items-center ${expandedId === entry.id ? 'overflow-visible' : 'overflow-hidden'} ${meta.bg} ${meta.text} ${meta.border}`}
               style={{ left: `${left}%`, width: `${width}%`, minWidth: 4 }}
               onMouseDown={(e) => onMouseDownBlock(e, entry)}
-              title={`${entry.label} · W${entry.week}–${entry.week + entry.duration - 1}`}
             >
+              {/* Expanded tooltip */}
+              {expandedId === entry.id && (
+                <div className="absolute bottom-full left-0 z-20 mb-1 min-w-max max-w-48 rounded-lg border border-border bg-background px-2.5 py-1.5 shadow-md pointer-events-none">
+                  <p className="ds-caption font-medium text-foreground leading-snug">{entry.label}</p>
+                  <p className="ds-caption text-muted-foreground mt-0.5">W{entry.week}–W{entry.week + entry.duration - 1}</p>
+                </div>
+              )}
               {/* Label — wraps to 2 lines, font scales with block width */}
               {!isBar && (
                 <span
@@ -263,7 +274,7 @@ function GanttRow({
 // ── Main component ────────────────────────────────────────────────────
 
 export function CreateTimeline() {
-  const { timeline, setTimeline, completeFeature } = useThesisStore()
+  const { timeline, setTimeline, completeFeature, uncompleteFeature } = useThesisStore()
 
   const [entries, setEntries] = useState<TimelineEntry[]>(() =>
     timeline.length > 0 ? timeline : DEFAULT_TIMELINE.map((e) => ({ ...e }))
@@ -468,15 +479,25 @@ export function CreateTimeline() {
         </p>
         <AnimatePresence mode="wait">
           {saved ? (
-            <motion.span
+            <motion.div
               key="saved"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background"
+              className="flex items-center gap-2"
             >
-              <Check className="size-3.5" />
-              Timeline saved
-            </motion.span>
+              <span className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
+                <Check className="size-3.5" />
+                Done
+              </span>
+              <button
+                type="button"
+                onClick={() => { uncompleteFeature('create-timeline'); setSaved(false) }}
+                className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <RotateCcw className="size-3" />
+                Undo
+              </button>
+            </motion.div>
           ) : (
             <motion.button
               key="save"
@@ -485,7 +506,7 @@ export function CreateTimeline() {
               className="ds-caption flex items-center gap-1.5 rounded-full border border-foreground/30 px-3 py-1.5 text-foreground transition-colors hover:bg-foreground hover:text-background"
             >
               <Check className="size-3.5" />
-              Save timeline
+              Mark as done
             </motion.button>
           )}
         </AnimatePresence>

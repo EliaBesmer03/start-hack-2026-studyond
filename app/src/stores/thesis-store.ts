@@ -273,6 +273,7 @@ interface ThesisState {
   completeOnboarding: () => void
   resetProfile: () => void
   completeFeature: (featureId: string) => void
+  uncompleteFeature: (featureId: string) => void
   updateTaskStatus: (taskId: string, status: TaskStatus) => void
   dismissNudge: (taskId: string) => void
   saveChatMessages: (msgs: Message[]) => void
@@ -362,6 +363,7 @@ export const useThesisStore = create<ThesisState>()(
           finalDecision: null,
           timeline: [],
           savedLiterature: [],
+          surveyAnswers: null,
         }),
       completeFeature: (featureId) =>
         set((s) => {
@@ -387,6 +389,12 @@ export const useThesisStore = create<ThesisState>()(
             celebrateStage: next ? currentStage : s.celebrateStage,
           }
         }),
+      uncompleteFeature: (featureId) =>
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.featureId === featureId && t.status === 'done' ? { ...t, status: 'pending' as TaskStatus } : t,
+          ),
+        })),
       updateTaskStatus: (taskId, status) =>
         set((s) => {
           const updatedTasks = s.tasks.map((t) => (t.id === taskId ? { ...t, status } : t))

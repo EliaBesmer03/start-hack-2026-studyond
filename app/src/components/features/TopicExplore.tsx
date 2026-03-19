@@ -527,7 +527,7 @@ export function TopicExplore({ onOpenCoPilot }: TopicExploreProps) {
         </div>
       ) : (
         <div className="grid-2-col">
-          {filteredTopics.slice(0, 20).map((t) => (
+          {filteredTopics.map((t) => (
             <TopicCard
               key={t.id}
               topic={t}

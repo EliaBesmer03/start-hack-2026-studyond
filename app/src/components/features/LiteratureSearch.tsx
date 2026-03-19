@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Bookmark, CheckCircle2, Loader2, BookOpen,
-  User, Calendar, Building2, Tag, X, Sparkles, AlertCircle,
+  User, Calendar, Building2, X, Sparkles, AlertCircle, RotateCcw, Tag,
 } from 'lucide-react'
 import { searchSLSP, type SLSPRecord } from '@/lib/slsp'
 import { useThesisStore } from '@/stores/thesis-store'
@@ -18,6 +18,124 @@ interface LiteratureSearchProps {
   onOpenCoPilot: (prompt?: string) => void
 }
 
+// ── Detail drawer ────────────────────────────────────────────────────
+
+function DetailDrawer({
+  record,
+  isSaved,
+  onToggleSave,
+  onAsk,
+  onClose,
+}: {
+  record: SLSPRecord
+  isSaved: boolean
+  onToggleSave: (record: SLSPRecord) => void
+  onAsk: (record: SLSPRecord) => void
+  onClose: () => void
+}) {
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.aside
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
+          <div className="flex size-8 items-center justify-center rounded-full bg-secondary">
+            <BookOpen className="size-4 text-foreground" />
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
+          {/* Subjects */}
+          {record.subjects.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {record.subjects.map((s, i) => (
+                <span key={i} className="ds-caption rounded-full bg-secondary px-2 py-0.5 text-muted-foreground flex items-center gap-1">
+                  <Tag className="size-2.5" />{s}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Title */}
+          <h2 className="ds-title-sm text-foreground leading-snug">{record.title}</h2>
+
+          {/* Meta */}
+          <div className="flex flex-col gap-2">
+            {record.authors.length > 0 && (
+              <div className="flex items-start gap-2">
+                <User className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                <p className="ds-body text-foreground">{record.authors.join(', ')}</p>
+              </div>
+            )}
+            {record.year && (
+              <div className="flex items-center gap-2">
+                <Calendar className="size-3.5 shrink-0 text-muted-foreground" />
+                <p className="ds-body text-foreground">{record.year}</p>
+              </div>
+            )}
+            {record.publisher && (
+              <div className="flex items-center gap-2">
+                <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
+                <p className="ds-body text-foreground">{record.publisher}</p>
+              </div>
+            )}
+            {record.isbn && (
+              <p className="ds-caption text-muted-foreground/60">ISBN {record.isbn}</p>
+            )}
+          </div>
+
+          {/* Abstract */}
+          {record.abstract && (
+            <div className="rounded-xl border border-border bg-secondary/30 p-4">
+              <p className="ds-caption font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Abstract</p>
+              <p className="ds-body text-foreground leading-relaxed">{record.abstract}</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => onAsk(record)}
+              className="flex items-center justify-center gap-2 rounded-full bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
+            >
+              <Sparkles className="size-4" />
+              Ask Co-Pilot about this source
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleSave(record)}
+              className={`flex items-center justify-center gap-2 rounded-full border px-4 py-3 ds-label transition-colors ${
+                isSaved
+                  ? 'border-foreground bg-foreground text-background'
+                  : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+              }`}
+            >
+              <Bookmark className={`size-4 ${isSaved ? 'fill-current' : ''}`} />
+              {isSaved ? 'Remove from saved' : 'Save source'}
+            </button>
+          </div>
+        </div>
+      </motion.aside>
+    </>
+  )
+}
+
 // ── Result card ──────────────────────────────────────────────────────
 
 function ResultCard({
@@ -25,15 +143,18 @@ function ResultCard({
   isSaved,
   onToggleSave,
   onAsk,
+  onOpen,
 }: {
   record: SLSPRecord
   isSaved: boolean
   onToggleSave: (record: SLSPRecord) => void
   onAsk: (record: SLSPRecord) => void
+  onOpen: (record: SLSPRecord) => void
 }) {
   return (
     <div
-      className={`flex flex-col gap-2.5 rounded-xl border bg-background p-4 transition-all duration-150 ${
+      onClick={() => onOpen(record)}
+      className={`flex cursor-pointer flex-col gap-2.5 rounded-xl border bg-background p-4 transition-all duration-150 ${
         isSaved ? 'border-foreground/30' : 'border-border hover:border-foreground/20 hover:shadow-sm'
       }`}
     >
@@ -88,7 +209,7 @@ function ResultCard({
       <div className="mt-1 flex items-center gap-2">
         <button
           type="button"
-          onClick={() => onToggleSave(record)}
+          onClick={(e) => { e.stopPropagation(); onToggleSave(record) }}
           className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 ds-caption font-medium transition-colors ${
             isSaved
               ? 'border-foreground bg-foreground text-background'
@@ -100,7 +221,7 @@ function ResultCard({
         </button>
         <button
           type="button"
-          onClick={() => onAsk(record)}
+          onClick={(e) => { e.stopPropagation(); onAsk(record) }}
           className="flex items-center gap-1.5 rounded-full bg-ai px-3 py-1.5 ds-caption font-medium text-background transition-all hover:opacity-90"
         >
           <Sparkles className="size-3" />
@@ -197,7 +318,7 @@ function SavedDrawer({
 
 export function LiteratureSearch({ onOpenCoPilot }: LiteratureSearchProps) {
   const {
-    completeFeature, tasks, savedLiterature, addLiterature, removeLiterature,
+    completeFeature, uncompleteFeature, tasks, savedLiterature, addLiterature, removeLiterature,
     finalDecision, favouriteTopicIds,
   } = useThesisStore()
 
@@ -207,6 +328,7 @@ export function LiteratureSearch({ onOpenCoPilot }: LiteratureSearchProps) {
   const [error, setError] = useState<string | null>(null)
   const [searched, setSearched] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [openRecord, setOpenRecord] = useState<SLSPRecord | null>(null)
 
   const isDone = tasks.some((t) => t.featureId === 'copilot-literature' && t.status === 'done')
 
@@ -281,7 +403,6 @@ export function LiteratureSearch({ onOpenCoPilot }: LiteratureSearchProps) {
   }
 
   const handleAsk = (record: SLSPRecord) => {
-    completeFeature('copilot-literature')
     const authorsStr = record.authors.length > 0
       ? ` by ${record.authors.slice(0, 2).join(' and ')}`
       : ''
@@ -323,10 +444,20 @@ export function LiteratureSearch({ onOpenCoPilot }: LiteratureSearchProps) {
           )}
         </div>
         {isDone ? (
-          <span className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
-            <CheckCircle2 className="size-3.5" />
-            Done
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background">
+              <CheckCircle2 className="size-3.5" />
+              Done
+            </span>
+            <button
+              type="button"
+              onClick={() => uncompleteFeature('copilot-literature')}
+              className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Undo
+            </button>
+          </div>
         ) : (
           <button
             type="button"
@@ -420,6 +551,7 @@ export function LiteratureSearch({ onOpenCoPilot }: LiteratureSearchProps) {
                 isSaved={isSaved(rec.id)}
                 onToggleSave={handleToggleSave}
                 onAsk={handleAsk}
+                onOpen={setOpenRecord}
               />
             ))}
           </div>
@@ -432,6 +564,19 @@ export function LiteratureSearch({ onOpenCoPilot }: LiteratureSearchProps) {
           <SavedDrawer
             onClose={() => setDrawerOpen(false)}
             onAsk={(rec) => { setDrawerOpen(false); handleAsk(rec) }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Detail drawer */}
+      <AnimatePresence>
+        {openRecord && (
+          <DetailDrawer
+            record={openRecord}
+            isSaved={isSaved(openRecord.id)}
+            onToggleSave={handleToggleSave}
+            onAsk={(rec) => { setOpenRecord(null); handleAsk(rec) }}
+            onClose={() => setOpenRecord(null)}
           />
         )}
       </AnimatePresence>

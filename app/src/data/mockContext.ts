@@ -87,6 +87,7 @@ export interface StudentProgress {
   onboardingAnswers: { questionIndex: number; value: string }[]
   studentName?: string | null
   studentEmail?: string | null
+  surveyAnswers?: Record<string, 'a' | 'b' | number> | null
 }
 
 /**
@@ -248,6 +249,50 @@ export function buildSystemPrompt(
       progress.timeline.forEach((t) => {
         progressLines.push(`  - Week ${t.week}–${t.week + t.duration - 1}: ${t.label} (${t.category})`)
       })
+    }
+
+    // Academic Identity Map (Learning Profile Survey)
+    if (progress.surveyAnswers && Object.keys(progress.surveyAnswers).length > 0) {
+      // Derive dominant axes from answers — simplified summary
+      const aAnswers = Object.entries(progress.surveyAnswers).filter(([k]) => k.startsWith('a'))
+      const pAnswers = Object.entries(progress.surveyAnswers).filter(([k]) => k.startsWith('p'))
+      const axisCount: Record<string, number> = {}
+      const A_AXIS_MAP: Record<string, Record<string, string>> = {
+        a1: { a: 'STEM', b: 'Humanities' },
+        a2: { a: 'Business', b: 'Social Sciences' },
+        a3: { a: 'Law & Politics', b: 'Environment' },
+        a4: { a: 'Arts & Design', b: 'Health & Medicine' },
+        a5: { a: 'Humanities', b: 'STEM' },
+        a6: { a: 'Social Sciences', b: 'Business' },
+        a7: { a: 'Environment', b: 'Law & Politics' },
+        a8: { a: 'Health & Medicine', b: 'Arts & Design' },
+      }
+      const P_AXIS_MAP: Record<string, Record<string, string>> = {
+        p1: { a: 'Intrapersonal', b: 'Spiritual' },
+        p2: { a: 'Interpersonal', b: 'Teaching' },
+        p3: { a: 'Verbal', b: 'Logical' },
+        p4: { a: 'Spatial', b: 'Musical' },
+        p7: { a: 'Verbal', b: 'Spatial' },
+        p8: { a: 'Intrapersonal', b: 'Interpersonal' },
+      }
+      for (const [k, v] of aAnswers) {
+        const axis = A_AXIS_MAP[k]?.[v as string]
+        if (axis) axisCount[axis] = (axisCount[axis] ?? 0) + 1
+      }
+      for (const [k, v] of pAnswers) {
+        if (typeof v === 'number') continue
+        const axis = P_AXIS_MAP[k]?.[v as string]
+        if (axis) axisCount[axis] = (axisCount[axis] ?? 0) + 1
+      }
+      const topAxes = Object.entries(axisCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([ax]) => ax)
+      if (topAxes.length > 0) {
+        progressLines.push(`- Academic Identity Map completed — top domains: ${topAxes.join(', ')}`)
+      } else {
+        progressLines.push(`- Academic Identity Map completed`)
+      }
     }
 
     // Task progress

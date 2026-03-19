@@ -322,7 +322,7 @@ function AvailabilityStep({
           }`}
         >
           <span
-            className={`absolute top-0.5 size-4 rounded-full bg-background shadow transition-transform ${
+            className={`absolute left-0 top-0.5 size-4 rounded-full bg-background shadow transition-transform ${
               prefs.openToOutreach ? 'translate-x-5' : 'translate-x-0.5'
             }`}
           />

@@ -182,7 +182,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     profile, chatHistories, knowledgeFacts, thesisNotes, universityGuidelines,
     saveStageChatMessages, addKnowledgeFacts, addThesisNote, removeThesisNote,
     favouriteTopicIds, shortlistedSupervisorIds, acceptedExpertIds,
-    finalDecision, timeline, tasks, savedLiterature,
+    finalDecision, timeline, tasks, savedLiterature, surveyAnswers,
   } = useThesisStore()
 
   const [panelWidth, setPanelWidth] = useState(380)
@@ -212,7 +212,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
   const stageSubtitle = STAGE_SUBTITLE[currentStage] ?? 'Orientation'
   const starters = STARTER_PROMPTS[currentStage] ?? STARTER_PROMPTS.orientation
 
-  const [tab, setTab] = useState<'chat' | 'notes' | 'knowledge'>('chat')
+  const [tab, setTab] = useState<'chat' | 'memory'>('chat')
   const [messages, setMessages] = useState<Message[]>(
     () => chatHistories[currentStage] ?? [],
   )
@@ -234,6 +234,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     onboardingAnswers: profile.answers,
     studentName: profile.name,
     studentEmail: profile.email,
+    surveyAnswers,
   }
 
   const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress, savedLiterature)
@@ -414,31 +415,16 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
         </button>
         <button
           type="button"
-          onClick={() => setTab('notes')}
+          onClick={() => setTab('memory')}
           className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ds-caption font-medium transition-colors ${
-            tab === 'notes' ? 'border-b-2 border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <StickyNote className="size-3.5" />
-          Notes
-          {thesisNotes.length > 0 && (
-            <span className="flex size-4 items-center justify-center rounded-full bg-foreground ds-badge text-background">
-              {thesisNotes.length}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('knowledge')}
-          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ds-caption font-medium transition-colors ${
-            tab === 'knowledge' ? 'border-b-2 border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground'
+            tab === 'memory' ? 'border-b-2 border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <Brain className="size-3.5" />
           Memory
-          {knowledgeFacts.length > 0 && (
+          {(thesisNotes.length + knowledgeFacts.length) > 0 && (
             <span className="flex size-4 items-center justify-center rounded-full bg-foreground ds-badge text-background">
-              {knowledgeFacts.length}
+              {thesisNotes.length + knowledgeFacts.length}
             </span>
           )}
         </button>
@@ -460,14 +446,9 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                       Hi! I'm <span className="font-medium">{botName}</span>, your {stageSubtitle} Co-Pilot. I have access to
                       topics, supervisors, and partner companies.
                     </p>
-                    {knowledgeFacts.length > 0 && (
+                    {(knowledgeFacts.length > 0 || thesisNotes.length > 0) && (
                       <p className="ds-body mt-1.5 text-foreground leading-relaxed">
-                        I remember <span className="font-medium">{knowledgeFacts.length} fact{knowledgeFacts.length > 1 ? 's' : ''}</span> about you from previous conversations — check the Memory tab.
-                      </p>
-                    )}
-                    {thesisNotes.length > 0 && (
-                      <p className="ds-body mt-1.5 text-foreground leading-relaxed">
-                        I also have your <span className="font-medium">{thesisNotes.length} profile note{thesisNotes.length > 1 ? 's' : ''}</span>.
+                        I have your <span className="font-medium">{thesisNotes.length + knowledgeFacts.length} memory item{(thesisNotes.length + knowledgeFacts.length) > 1 ? 's' : ''}</span> — notes and learned facts from previous chats.
                       </p>
                     )}
                     <p className="ds-body mt-1.5 text-foreground leading-relaxed">
@@ -589,40 +570,81 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
         </>
       )}
 
-      {/* ── Notes tab ── */}
-      {tab === 'notes' && (
+      {/* ── Memory tab (notes + knowledge facts) ── */}
+      {tab === 'memory' && (
         <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <p className="ds-caption mb-3 text-muted-foreground">
-              Notes are injected into every Co-Pilot conversation. Use them to record your preferences, decisions, and context so the Co-Pilot always knows your situation.
-            </p>
+          <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-6">
 
-            {thesisNotes.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border py-10 text-center">
-                <StickyNote className="mx-auto mb-2 size-6 text-muted-foreground/30" />
-                <p className="ds-small text-muted-foreground/60">No notes yet</p>
-                <p className="ds-caption mt-1 text-muted-foreground/40">Add your first note below</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {thesisNotes.map((note, i) => (
-                  <div
-                    key={i}
-                    className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
-                  >
-                    <p className="ds-body flex-1 leading-relaxed text-foreground">{note}</p>
-                    <button
-                      type="button"
-                      onClick={() => removeThesisNote(i)}
-                      className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
-                      aria-label="Remove note"
+            {/* Profile Notes section */}
+            <div>
+              <p className="ds-label mb-1 text-foreground">Profile Notes</p>
+              <p className="ds-caption mb-3 text-muted-foreground">
+                Injected into every conversation — record your preferences, decisions, and constraints.
+              </p>
+              {thesisNotes.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border py-6 text-center">
+                  <StickyNote className="mx-auto mb-2 size-5 text-muted-foreground/30" />
+                  <p className="ds-caption text-muted-foreground/50">No notes yet — add one below</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {thesisNotes.map((note, i) => (
+                    <div
+                      key={i}
+                      className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
                     >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                      <p className="ds-body flex-1 leading-relaxed text-foreground">{note}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeThesisNote(i)}
+                        className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
+                        aria-label="Remove note"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Auto-learned facts section */}
+            <div>
+              <p className="ds-label mb-1 text-foreground">Learned Facts</p>
+              <p className="ds-caption mb-3 text-muted-foreground">
+                Automatically extracted from your conversations. Shared across all Co-Pilots.
+              </p>
+              {knowledgeFacts.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border py-6 text-center">
+                  <Brain className="mx-auto mb-2 size-5 text-muted-foreground/30" />
+                  <p className="ds-caption text-muted-foreground/50">No memories yet — chat to build your knowledge base</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {knowledgeFacts.map((fact) => (
+                    <div
+                      key={fact.id}
+                      className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
+                    >
+                      <div className="flex-1">
+                        <p className="ds-body leading-relaxed text-foreground">{fact.content}</p>
+                        <p className="ds-caption mt-1 text-muted-foreground">
+                          {STAGE_LABEL[fact.sourceStage] ?? fact.sourceStage} · {fact.category}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => useThesisStore.getState().removeKnowledgeFact(fact.id)}
+                        className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
+                        aria-label="Remove fact"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Note input */}
@@ -636,7 +658,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                   handleAddNote()
                 }
               }}
-              placeholder="e.g. I'm focusing on sustainable supply chains…"
+              placeholder="Add a profile note…"
               rows={2}
               className="ds-body flex-1 resize-none rounded-xl border border-border bg-secondary px-3 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/30 focus:outline-none"
             />
@@ -649,49 +671,6 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             >
               <Plus className="size-3.5" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Knowledge tab ── */}
-      {tab === 'knowledge' && (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <p className="ds-caption mb-3 text-muted-foreground">
-              Facts automatically learned from your conversations. All Co-Pilots share this memory — what you tell Kompass, the Coach knows too.
-            </p>
-
-            {knowledgeFacts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border py-10 text-center">
-                <Brain className="mx-auto mb-2 size-6 text-muted-foreground/30" />
-                <p className="ds-small text-muted-foreground/60">No memories yet</p>
-                <p className="ds-caption mt-1 text-muted-foreground/40">Chat with any Co-Pilot to start building your knowledge base</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {knowledgeFacts.map((fact) => (
-                  <div
-                    key={fact.id}
-                    className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
-                  >
-                    <div className="flex-1">
-                      <p className="ds-body leading-relaxed text-foreground">{fact.content}</p>
-                      <p className="ds-caption mt-1 text-muted-foreground">
-                        {STAGE_LABEL[fact.sourceStage] ?? fact.sourceStage} · {fact.category}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => useThesisStore.getState().removeKnowledgeFact(fact.id)}
-                      className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
-                      aria-label="Remove fact"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -506,7 +506,7 @@ export function SmartMatch() {
       .filter((c) => !coveredTopicIds.has(c.topic.id))
       .sort((a, b) => b.score - a.score)
 
-    return [...combos.sort((a, b) => b.score - a.score), ...aiRecs]
+    return [...combos, ...aiRecs].sort((a, b) => b.score - a.score)
   }, [favouriteTopicIds, shortlistedSupervisorIds, userFieldAnswer, thesisNotes, userFieldIds])
 
   const [actions, setActions] = useState<Record<string, CardAction>>({})

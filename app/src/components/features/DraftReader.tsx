@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2, Check, ChevronLeft, ChevronRight,
-  FileText, Send, Sparkles, Star,
+  FileText, Send, Sparkles,
 } from 'lucide-react'
 import { experts, companies, fields, byId, type Expert } from '@/data/mock'
 import { useThesisStore } from '@/stores/thesis-store'
@@ -234,11 +234,6 @@ function ReaderCard({
           <div>
             <div className="flex items-center gap-2">
               <p className="ds-label text-foreground">{expert.firstName} {expert.lastName}</p>
-              <div className="flex items-center gap-0.5">
-                {[...Array(Math.round(score / 20))].map((_, i) => (
-                  <Star key={i} className="size-3 fill-foreground text-foreground" />
-                ))}
-              </div>
             </div>
             <p className="ds-small mt-0.5 text-muted-foreground">{expert.title}</p>
             <p className="ds-caption flex items-center gap-1 mt-1 text-muted-foreground">

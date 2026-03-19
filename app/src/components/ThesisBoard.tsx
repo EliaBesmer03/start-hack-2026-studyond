@@ -282,13 +282,29 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
     allStageIds.filter((id) => !isStageUnlocked(id, currentStage))
   )
 
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const firstName = profile.name?.split(' ')[0] ?? null
+
+  const STAGE_SLOGANS: Record<ThesisStage, string> = {
+    orientation:         'Your thesis journey starts here — let\'s get your profile set up.',
+    'topic-discovery':   'You\'re finding your topic. The right idea is closer than you think.',
+    'supervisor-search': 'Planning time. A solid foundation now saves weeks later.',
+    planning:            'In the thick of it — this is where great theses are made.',
+    'execution-writing': 'Almost there. Every paragraph brings you closer to done.',
+  }
+  const slogan = STAGE_SLOGANS[currentStage]
+
   return (
     <div className="flex min-h-full flex-col">
       {/* Header + filter */}
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Thesis Board</p>
-          <h2 className="ds-title-md mt-1 text-foreground">Your tasks</h2>
+          <h2 className="ds-title-md mt-1 text-foreground">
+            {greeting}{firstName ? `, ${firstName}` : ''}.
+          </h2>
+          <p className="ds-body mt-1 text-muted-foreground">{slogan}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

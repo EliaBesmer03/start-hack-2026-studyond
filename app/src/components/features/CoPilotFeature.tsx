@@ -4,8 +4,7 @@
  * The user manually marks this step as complete — it does NOT auto-complete on first open.
  */
 
-import { useState } from 'react'
-import { Sparkles, ArrowRight, Check } from 'lucide-react'
+import { Sparkles, ArrowRight, Check, RotateCcw } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 
 interface CoPilotFeatureProps {
@@ -17,14 +16,11 @@ interface CoPilotFeatureProps {
 }
 
 export function CoPilotFeature({ title, description, starters, featureId, onOpenCoPilot }: CoPilotFeatureProps) {
-  const { completeFeature, tasks } = useThesisStore()
+  const { completeFeature, uncompleteFeature, tasks } = useThesisStore()
   const isDone = tasks.find((t) => t.featureId === featureId)?.status === 'done'
-  const [markedDone, setMarkedDone] = useState(isDone)
 
-  const handleMarkDone = () => {
-    completeFeature(featureId)
-    setMarkedDone(true)
-  }
+  const handleMarkDone = () => completeFeature(featureId)
+  const handleUndo = () => uncompleteFeature(featureId)
 
   return (
     <div className="mx-auto w-full ds-layout-narrow">
@@ -67,12 +63,22 @@ export function CoPilotFeature({ title, description, starters, featureId, onOpen
 
       {/* Manual mark-as-done */}
       <div className="mt-6 border-t border-border pt-5">
-        {markedDone ? (
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
-            <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
-              <Check className="size-3" strokeWidth={2.5} />
-            </span>
-            <p className="ds-label text-foreground">Marked as complete</p>
+        {isDone ? (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
+                <Check className="size-3" strokeWidth={2.5} />
+              </span>
+              <p className="ds-label text-foreground">Marked as complete</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="ds-caption flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Undo
+            </button>
           </div>
         ) : (
           <button
