@@ -18,6 +18,7 @@ import { CoPilotFeature } from '@/components/features/CoPilotFeature'
 import { ThesisAlumni } from '@/components/features/ThesisAlumni'
 import { FinalDecision } from '@/components/features/FinalDecision'
 import { CreateTimeline } from '@/components/features/CreateTimeline'
+import { StartingTutorial } from '@/components/StartingTutorial'
 
 /* ── Stage celebration overlay ─────────────────────────────────────── */
 
@@ -316,6 +317,12 @@ export function Dashboard() {
   return (
     <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
 
+      {/* Starting tutorial overlay */}
+      <StartingTutorial
+        onNavigateTimeline={() => setActiveFeature('create-timeline')}
+        onGoBack={() => setActiveFeature(null)}
+      />
+
       {/* Stage completion celebration overlay */}
       <AnimatePresence>
         {celebrateStage && (
@@ -413,6 +420,7 @@ export function Dashboard() {
             {/* Co-Pilot toggle */}
             <button
               type="button"
+              data-tutorial="copilot"
               onClick={() => { setChatOpen((o) => !o); if (!chatOpen) setChatStarterPrompt(null) }}
               className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 ds-caption font-medium transition-all duration-200 ${
                 chatOpen
