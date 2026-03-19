@@ -46,7 +46,7 @@ function buildSteps(onNavigateTimeline: () => void): StepDef[] {
     {
       title: 'Your AI Co-Pilot',
       description:
-        'Your AI thesis companion lives in the top-right corner. Click Co-Pilot anytime to get personalised, stage-specific guidance — from drafting outreach emails to structuring your thesis proposal. It also remembers key facts about you across conversations.',
+        'Your AI thesis companion lives in the top-right corner. It has three modes: Topic helps you find and refine your research direction, Planning covers methodology, proposals, milestones and registration, and Analysis guides data collection through to finished findings. Each mode is fully personalised to your profile, choices, and progress.',
       getHighlight: () => {
         const el = document.querySelector('[data-tutorial="copilot"]') as HTMLElement | null
         if (el) {
@@ -62,7 +62,7 @@ function buildSteps(onNavigateTimeline: () => void): StepDef[] {
     {
       title: 'Your Task Board',
       description:
-        'Studyond pre-fills your board with all the tasks you need at each thesis stage — so you always know exactly what to do next. Click any card to open the feature. When you reach the Planning stage, you can build out your individual thesis plan there.',
+        'Studyond pre-fills your board with all the tasks you need at each thesis stage — so you always know exactly what to do next. Click any card to open the feature. Timeline entries you create also appear here automatically, showing whether each phase is upcoming, in progress, or done.',
       getHighlight: () => ({
         top: 56,
         left: sidebarW,
@@ -79,41 +79,40 @@ function buildSteps(onNavigateTimeline: () => void): StepDef[] {
 
     /* ── 4: Open timeline ── */
     {
-      title: 'Create Your Timeline',
+      title: 'Build Your Timeline',
       description:
-        "Plan your milestones, writing phases, and outreach in the Timeline. Find it in the left sidebar under the Planning stage. You can add your own events and drag them to fit your schedule. We'll open it now.",
+        "The Timeline is your personal thesis schedule. Click and drag across any week to create an entry, then click it to edit the label, add notes, or remove it. You can rename columns, add new ones, and set a hand-in date. All entries sync to your Kanban board automatically. We'll open it now.",
       getHighlight: () => ({ top: 0, left: 0, width: sidebarW, height: vh, borderRadius: 0 }),
       tooltipStyle: { top: '50%', left: sidebarW + 20, transform: 'translateY(-50%)' },
       cta: 'Open Timeline',
       sideEffect: onNavigateTimeline,
     },
 
-    /* ── 5: Palette / add-task area ── */
+    /* ── 5: Timeline grid ── */
     {
-      title: 'Add Your Own Events',
+      title: 'Draw to Create',
       description:
-        'Click any chip in the palette to instantly add that event to your timeline. Each one appends to the right of its row — then drag it to any week. You can resize blocks by dragging their right edge.',
+        'Click and drag across any row to draw a new timeline block. Click an existing block to open its edit popup — change the label, add a note, or delete it. Double-click any column header to rename it, and use the + button to add a new column. Set your hand-in date in the top bar to anchor the whole schedule.',
       getHighlight: () => {
-        const el = document.querySelector('[data-tutorial="timeline-palette"]') as HTMLElement | null
+        const el = document.querySelector('[data-tutorial="timeline-grid"]') as HTMLElement | null
         if (el) {
           const r = el.getBoundingClientRect()
-          return { top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16, borderRadius: 16 }
+          return { top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16, borderRadius: 12 }
         }
-        return { top: 140, left: sidebarW + 24, width: vw - sidebarW - 48, height: 180, borderRadius: 16 }
+        return { top: 160, left: sidebarW + 16, width: vw - sidebarW - 32, height: vh - 220, borderRadius: 12 }
       },
       tooltipStyle: (() => {
-        const el = document.querySelector('[data-tutorial="timeline-palette"]') as HTMLElement | null
+        const el = document.querySelector('[data-tutorial="timeline-grid"]') as HTMLElement | null
         if (el) {
           const r = el.getBoundingClientRect()
-          const below = r.bottom + 16 + 260 < vh
-          return below
-            ? { top: r.bottom + 16, left: Math.min(r.left, vw - 340) }
-            : { bottom: vh - r.top + 16, left: Math.min(r.left, vw - 340) }
+          const spaceBelow = vh - r.bottom
+          return spaceBelow > 280
+            ? { top: r.bottom + 16, left: Math.min(r.left + 16, vw - 340) }
+            : { top: r.top + 16, left: Math.min(r.right + 16, vw - 340) }
         }
-        return { top: 340, left: sidebarW + 24 }
+        return { top: '40%', left: `calc(${sidebarW}px + 32px)`, transform: 'translateY(-50%)' }
       })(),
       cta: "Got it, let's go!",
-      // No sideEffect — last step is handled by onGoBack in next()
     },
   ]
 }
