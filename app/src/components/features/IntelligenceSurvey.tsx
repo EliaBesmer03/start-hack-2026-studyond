@@ -534,7 +534,7 @@ export function IntelligenceSurvey() {
   /* ── Intro ── */
   if (phase === 'intro') {
     return (
-      <div className="ds-layout-narrow flex flex-col gap-8 py-4">
+      <div className="mx-auto w-full max-w-xl flex flex-col gap-8 py-4">
         <div>
           <p className="ds-caption font-semibold uppercase tracking-widest text-muted-foreground mb-3">
             Optional · under 5 minutes
@@ -577,7 +577,7 @@ export function IntelligenceSurvey() {
     const progress = ((step) / TOTAL) * 100
 
     return (
-      <div className="ds-layout-narrow flex flex-col py-4">
+      <div className="mx-auto w-full max-w-xl flex flex-col py-4">
         {/* Progress */}
         <div className="mb-8 flex flex-col gap-2">
           <div className="flex items-center justify-between ds-caption text-muted-foreground">
