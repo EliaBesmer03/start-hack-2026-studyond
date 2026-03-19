@@ -23,13 +23,7 @@ The solution extends Studyond's existing AI from a discovery tool into a full th
 A 3-step onboarding flow that replaces the current one-size-fits-all signup. It detects each student's position in the thesis journey and adapts the entire experience accordingly.
 
 ### How it works
-On first login (or when a returning student has no active project), the wizard asks three questions:
-
-1. **Do you have a thesis topic yet?** Yes / Exploring / No
-2. **Do you have a supervisor confirmed?** Yes / In contact / No
-3. **Do you have a company partner?** Yes / Looking / Not needed
-
-Based on answers, the system assigns one of five entry points:
+On first login (or when a returning student has no active project), the wizard asks some questions to determine in which of the 5 stages the student is in at the moment. the questionnaire should be multiple choice and not be longer than 2 minutes. Based on answers, the system assigns one of five entry points:
 
 | Student profile | Entry point |
 |---|---|
