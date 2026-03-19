@@ -182,7 +182,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     profile, chatHistories, knowledgeFacts, thesisNotes, universityGuidelines,
     saveStageChatMessages, addKnowledgeFacts, addThesisNote, removeThesisNote,
     favouriteTopicIds, shortlistedSupervisorIds, acceptedExpertIds,
-    finalDecision, timeline, tasks,
+    finalDecision, timeline, tasks, savedLiterature,
   } = useThesisStore()
 
   const [panelWidth, setPanelWidth] = useState(380)
@@ -236,7 +236,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     studentEmail: profile.email,
   }
 
-  const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress)
+  const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress, savedLiterature)
 
   // Persist messages to store whenever they change (per stage)
   useEffect(() => {

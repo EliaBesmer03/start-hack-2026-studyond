@@ -14,5 +14,12 @@ export default defineConfig({
   },
   server: {
     fs: { allow: ['..'] },
+    proxy: {
+      '/api/slsp': {
+        target: 'https://swisscovery.slsp.ch',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/slsp/, ''),
+      },
+    },
   },
 })

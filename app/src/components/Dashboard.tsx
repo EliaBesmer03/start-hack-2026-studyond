@@ -18,6 +18,7 @@ import { CoPilotFeature } from '@/components/features/CoPilotFeature'
 import { ThesisAlumni } from '@/components/features/ThesisAlumni'
 import { FinalDecision } from '@/components/features/FinalDecision'
 import { CreateTimeline } from '@/components/features/CreateTimeline'
+import { LiteratureSearch } from '@/components/features/LiteratureSearch'
 import { StartingTutorial } from '@/components/StartingTutorial'
 
 /* ── Stage celebration overlay ─────────────────────────────────────── */
@@ -232,6 +233,7 @@ function FeaturePane({
   if (featureId === 'supervisor-search') return <SupervisorSearch onOpenCoPilot={onOpenCoPilot} />
   if (featureId === 'final-decision') return <FinalDecision />
   if (featureId === 'create-timeline') return <CreateTimeline />
+  if (featureId === 'copilot-literature') return <LiteratureSearch onOpenCoPilot={onOpenCoPilot} />
 
   // Co-Pilot feature stubs — each task has its own entry with tailored prompts
   const coPilotFeatures: Partial<Record<FeatureId, { title: string; description: string; starters: string[] }>> = {
@@ -269,15 +271,6 @@ function FeaturePane({
         'What do I need to register my thesis?',
         'What are the typical registration deadlines?',
         'Help me draft my registration abstract',
-      ],
-    },
-    'copilot-literature': {
-      title: 'Literature Review',
-      description: 'Structure your sources, identify research gaps, and organise your literature review by themes.',
-      starters: [
-        'Help me structure my literature review',
-        'How do I identify gaps in existing research?',
-        'What makes a strong theoretical framework?',
       ],
     },
     'copilot-data': {

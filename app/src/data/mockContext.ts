@@ -95,6 +95,13 @@ export interface StudentProgress {
  * available topics, supervisors, companies, and universities.
  * Knowledge facts from all stages are injected for cross-stage persistence.
  */
+export interface SavedLiteratureInput {
+  title: string
+  authors: string[]
+  year: string
+  subjects: string[]
+}
+
 export function buildSystemPrompt(
   stage: string | null,
   concern: string | null,
@@ -102,6 +109,7 @@ export function buildSystemPrompt(
   universityGuidelines: string = '',
   knowledgeFacts: KnowledgeFactInput[] = [],
   progress?: StudentProgress,
+  savedLiterature: SavedLiteratureInput[] = [],
 ): string {
   const stageLabel = {
     orientation: 'Orientation',
@@ -257,6 +265,10 @@ export function buildSystemPrompt(
     ? `\n## Student's Current Progress (from platform actions — bookmarks, decisions, tasks)\n${progressLines.join('\n')}`
     : ''
 
+  const literatureSection = savedLiterature.length > 0
+    ? `\n## Saved Literature Sources (student bookmarked these from swisscovery — reference them when discussing literature review)\n${savedLiterature.map((l) => `- "${l.title}" by ${l.authors.slice(0, 2).join(', ') || 'Unknown'}${l.year ? ` (${l.year})` : ''}${l.subjects.length > 0 ? ` — Topics: ${l.subjects.slice(0, 3).join(', ')}` : ''}`).join('\n')}`
+    : ''
+
   const nameIntro = progress?.studentName ? `\nThe student's name: **${progress.studentName}** — use their first name naturally in conversation.` : ''
 
   const CONCERN_LABELS: Record<string, string> = {
@@ -270,7 +282,7 @@ export function buildSystemPrompt(
 
   return `You are Studyond's **${stageLabel} Co-Pilot** — a specialised AI thesis companion for students in Swiss universities.
 
-The student's current stage: **${stageLabel}**${nameIntro}${concernLabel ? `\nThe student's main concern: ${concernLabel}` : ''}${notesSection}${progressSection}${knowledgeSection}${guidelinesSection}
+The student's current stage: **${stageLabel}**${nameIntro}${concernLabel ? `\nThe student's main concern: ${concernLabel}` : ''}${notesSection}${progressSection}${knowledgeSection}${literatureSection}${guidelinesSection}
 
 Your role:
 - You are a conversational partner — the student can ask you ANYTHING freely
