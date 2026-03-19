@@ -16,6 +16,7 @@ import { ProfileSetup } from '@/components/features/ProfileSetup'
 import { TopicExplore } from '@/components/features/TopicExplore'
 import { SupervisorSearch } from '@/components/features/SupervisorSearch'
 import { CoPilotFeature } from '@/components/features/CoPilotFeature'
+import { ThesisAlumni } from '@/components/features/ThesisAlumni'
 
 /* ── Stage celebration overlay ─────────────────────────────────────── */
 
@@ -203,6 +204,7 @@ const FEATURE_LABELS: Record<FeatureId, string> = {
   'copilot-writing':   'Writing Co-Pilot',
   'draft-reader':      'Draft Reader',
   'thesis-twin':       'Thesis Twin',
+  'thesis-alumni':     'Alumni Profile',
 }
 
 /* ── Feature pane ──────────────────────────────────────────────────── */
@@ -218,6 +220,7 @@ function FeaturePane({
   if (featureId === 'interview-partners') return <InterviewPartners />
   if (featureId === 'thesis-twin') return <ThesisTwin />
   if (featureId === 'draft-reader') return <DraftReader />
+  if (featureId === 'thesis-alumni') return <ThesisAlumni />
   if (featureId === 'profile-setup') return <ProfileSetup />
   if (featureId === 'topic-explore') return <TopicExplore onOpenCoPilot={onOpenCoPilot} />
   if (featureId === 'supervisor-search') return <SupervisorSearch onOpenCoPilot={onOpenCoPilot} />

@@ -20,6 +20,7 @@ export type FeatureId =
   | 'thesis-twin'
   | 'copilot-writing'
   | 'draft-reader'
+  | 'thesis-alumni'
 
 export interface FeatureItem {
   id: FeatureId
@@ -49,6 +50,7 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   'execution-writing': [
     { id: 'copilot-writing', label: 'Writing Co-Pilot', description: 'Draft support, feedback integration' },
     { id: 'draft-reader',    label: 'Draft Reader',     description: 'Request an expert to review your draft' },
+    { id: 'thesis-alumni',   label: 'Alumni Profile',   description: 'Leave feedback and be there for the next student' },
   ],
 }
 

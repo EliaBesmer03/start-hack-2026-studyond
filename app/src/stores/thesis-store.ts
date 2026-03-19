@@ -200,6 +200,14 @@ const DEFAULT_TASKS: Task[] = [
     featureId: 'copilot-writing',
     status: 'ready',
   },
+  {
+    id: 'w5',
+    stageId: 'execution-writing',
+    title: 'Complete Your Alumni Profile',
+    description: 'Leave feedback on your experience and opt in to help future students researching the same supervisor or topic.',
+    featureId: 'thesis-alumni',
+    status: 'ready',
+  },
 ]
 
 interface ThesisState {
