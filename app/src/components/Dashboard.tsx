@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Menu, X, Sparkles, BookOpen, RotateCcw, ChevronRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useThesisStore } from '@/stores/thesis-store'
-import { STAGES } from '@/types/thesis'
 import type { ThesisStage } from '@/types/thesis'
 import { JourneyMapSidebar } from '@/components/JourneyMapSidebar'
 import type { FeatureId } from '@/components/JourneyMapSidebar'
@@ -311,7 +310,8 @@ export function Dashboard() {
     if (chatOpen) setGuidelinesOpen(false)
   }, [chatOpen])
 
-  const stageIndex = STAGES.findIndex((s) => s.id === (celebrateStage ?? ''))
+  const { profile } = useThesisStore()
+  const currentStageId = profile.stage ?? 'orientation'
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
@@ -452,7 +452,7 @@ export function Dashboard() {
           <AnimatePresence>
             {chatOpen && (
               <CoPilotChat
-                key={`chat-${stageIndex}`}
+                key={`chat-${currentStageId}`}
                 onClose={handleCloseChat}
                 starterPrompt={chatStarterPrompt}
               />

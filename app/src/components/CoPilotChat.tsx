@@ -1,11 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, Loader2, Sparkles, StickyNote, Trash2, Plus } from 'lucide-react'
+import { X, Send, Bot, Loader2, Sparkles, StickyNote, Trash2, Plus, Brain } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useThesisStore } from '@/stores/thesis-store'
-import type { Message } from '@/stores/thesis-store'
-import { buildSystemPrompt } from '@/data/mockContext'
+import type { Message, KnowledgeFact, KnowledgeCategory } from '@/stores/thesis-store'
+import type { ThesisStage } from '@/types/thesis'
+import { buildSystemPrompt, KNOWLEDGE_EXTRACTION_PROMPT } from '@/data/mockContext'
 
 const STAGE_LABEL: Record<string, string> = {
+  orientation: 'Kompass',
+  'topic-discovery': 'Matcher',
+  'supervisor-search': 'Architekt',
+  planning: 'Coach',
+  'execution-writing': 'Editor',
+}
+
+const STAGE_SUBTITLE: Record<string, string> = {
   orientation: 'Orientation',
   'topic-discovery': 'Topic & Supervisor',
   'supervisor-search': 'Planning',
@@ -104,6 +113,59 @@ async function* streamAnthropic(
   }
 }
 
+/* ── Knowledge extraction (background) ─────────────────────────── */
+
+async function extractKnowledge(
+  recentMessages: { role: 'user' | 'assistant'; content: string }[],
+  stage: ThesisStage,
+): Promise<KnowledgeFact[]> {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+  if (!apiKey || recentMessages.length < 2) return []
+
+  try {
+    const conversationText = recentMessages
+      .slice(-6) // last 3 exchanges
+      .map((m) => `${m.role}: ${m.content}`)
+      .join('\n\n')
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: KNOWLEDGE_EXTRACTION_PROMPT,
+        messages: [{ role: 'user', content: conversationText }],
+      }),
+    })
+
+    if (!res.ok) return []
+
+    const data = await res.json()
+    const text = data.content?.[0]?.text ?? '[]'
+    const parsed = JSON.parse(text)
+
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .filter((f: { content?: string; category?: string }) => f.content && f.category)
+      .map((f: { content: string; category: string }) => ({
+        id: crypto.randomUUID(),
+        content: f.content,
+        sourceStage: stage,
+        category: f.category as KnowledgeCategory,
+        createdAt: Date.now(),
+      }))
+  } catch {
+    return []
+  }
+}
+
 /* ── CoPilotChat ────────────────────────────────────────────────── */
 
 interface CoPilotChatProps {
@@ -112,27 +174,47 @@ interface CoPilotChatProps {
 }
 
 export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
-  const { profile, chatHistory, thesisNotes, universityGuidelines, saveChatMessages, addThesisNote, removeThesisNote } = useThesisStore()
+  const {
+    profile, chatHistories, knowledgeFacts, thesisNotes, universityGuidelines,
+    saveStageChatMessages, addKnowledgeFacts, addThesisNote, removeThesisNote,
+    favouriteTopicIds, shortlistedSupervisorIds, acceptedExpertIds,
+    finalDecision, timeline, tasks,
+  } = useThesisStore()
   const stage = profile.stage
+  const currentStage: ThesisStage = (stage ?? 'orientation') as ThesisStage
   const concern = profile.concern
-  const stageLabel = STAGE_LABEL[stage ?? ''] ?? 'Orientation'
-  const starters = STARTER_PROMPTS[stage ?? 'orientation'] ?? STARTER_PROMPTS.orientation
+  const botName = STAGE_LABEL[currentStage] ?? 'Kompass'
+  const stageSubtitle = STAGE_SUBTITLE[currentStage] ?? 'Orientation'
+  const starters = STARTER_PROMPTS[currentStage] ?? STARTER_PROMPTS.orientation
 
-  const [tab, setTab] = useState<'chat' | 'notes'>('chat')
-  const [messages, setMessages] = useState<Message[]>(() => chatHistory)
+  const [tab, setTab] = useState<'chat' | 'notes' | 'knowledge'>('chat')
+  const [messages, setMessages] = useState<Message[]>(
+    () => chatHistories[currentStage] ?? [],
+  )
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [noteInput, setNoteInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const extractionCountRef = useRef(0)
 
-  const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines)
+  const progress = {
+    favouriteTopicIds,
+    shortlistedSupervisorIds,
+    acceptedExpertIds,
+    finalDecision,
+    timeline,
+    tasks: tasks.map((t) => ({ title: t.title, stageId: t.stageId, status: t.status })),
+    onboardingAnswers: profile.answers,
+  }
 
-  // Persist messages to store whenever they change
+  const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress)
+
+  // Persist messages to store whenever they change (per stage)
   useEffect(() => {
-    saveChatMessages(messages)
-  }, [messages, saveChatMessages])
+    saveStageChatMessages(currentStage, messages)
+  }, [messages, saveStageChatMessages, currentStage])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -186,6 +268,18 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             prev.map((m) => (m.id === assistantId ? { ...m, content: accumulated } : m)),
           )
         }
+
+        // Background knowledge extraction every 3 exchanges
+        extractionCountRef.current += 1
+        if (extractionCountRef.current % 3 === 0) {
+          const recentForExtraction = [
+            ...history,
+            { role: 'assistant' as const, content: accumulated },
+          ]
+          extractKnowledge(recentForExtraction, currentStage).then((facts) => {
+            if (facts.length > 0) addKnowledgeFacts(facts)
+          })
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Something went wrong'
         setError(msg)
@@ -194,7 +288,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
         setStreaming(false)
       }
     },
-    [messages, streaming, systemPrompt],
+    [messages, streaming, systemPrompt, currentStage, addKnowledgeFacts],
   )
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -231,8 +325,8 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             <Sparkles className="size-3.5 text-background" />
           </div>
           <div>
-            <p className="ds-label text-foreground leading-none">Co-Pilot</p>
-            <p className="ds-caption text-muted-foreground mt-0.5">{stageLabel} stage</p>
+            <p className="ds-label text-foreground leading-none">{botName}</p>
+            <p className="ds-caption text-muted-foreground mt-0.5">{stageSubtitle} stage</p>
           </div>
         </div>
         <button
@@ -272,6 +366,21 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             </span>
           )}
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('knowledge')}
+          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ds-caption font-medium transition-colors ${
+            tab === 'knowledge' ? 'border-b-2 border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Brain className="size-3.5" />
+          Memory
+          {knowledgeFacts.length > 0 && (
+            <span className="flex size-4 items-center justify-center rounded-full bg-foreground ds-badge text-background">
+              {knowledgeFacts.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* ── Chat tab ── */}
@@ -287,13 +396,17 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                   </div>
                   <div className="rounded-2xl rounded-tl-sm bg-secondary px-3.5 py-2.5">
                     <p className="ds-body text-foreground leading-relaxed">
-                      Hi! I'm your thesis Co-Pilot. I'm tuned to your{' '}
-                      <span className="font-medium">{stageLabel}</span> stage and I have access to
-                      available topics, supervisors, and partner companies.
+                      Hi! I'm <span className="font-medium">{botName}</span>, your {stageSubtitle} Co-Pilot. I have access to
+                      topics, supervisors, and partner companies.
                     </p>
+                    {knowledgeFacts.length > 0 && (
+                      <p className="ds-body mt-1.5 text-foreground leading-relaxed">
+                        I remember <span className="font-medium">{knowledgeFacts.length} fact{knowledgeFacts.length > 1 ? 's' : ''}</span> about you from previous conversations — check the Memory tab.
+                      </p>
+                    )}
                     {thesisNotes.length > 0 && (
                       <p className="ds-body mt-1.5 text-foreground leading-relaxed">
-                        I also have your <span className="font-medium">{thesisNotes.length} profile note{thesisNotes.length > 1 ? 's' : ''}</span> — so I remember your preferences.
+                        I also have your <span className="font-medium">{thesisNotes.length} profile note{thesisNotes.length > 1 ? 's' : ''}</span>.
                       </p>
                     )}
                     <p className="ds-body mt-1.5 text-foreground leading-relaxed">
@@ -454,6 +567,49 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             >
               <Plus className="size-3.5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Knowledge tab ── */}
+      {tab === 'knowledge' && (
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <p className="ds-caption mb-3 text-muted-foreground">
+              Facts automatically learned from your conversations. All Co-Pilots share this memory — what you tell Kompass, the Coach knows too.
+            </p>
+
+            {knowledgeFacts.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border py-10 text-center">
+                <Brain className="mx-auto mb-2 size-6 text-muted-foreground/30" />
+                <p className="ds-small text-muted-foreground/60">No memories yet</p>
+                <p className="ds-caption mt-1 text-muted-foreground/40">Chat with any Co-Pilot to start building your knowledge base</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {knowledgeFacts.map((fact) => (
+                  <div
+                    key={fact.id}
+                    className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
+                  >
+                    <div className="flex-1">
+                      <p className="ds-body leading-relaxed text-foreground">{fact.content}</p>
+                      <p className="ds-caption mt-1 text-muted-foreground">
+                        {STAGE_LABEL[fact.sourceStage] ?? fact.sourceStage} · {fact.category}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => useThesisStore.getState().removeKnowledgeFact(fact.id)}
+                      className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
+                      aria-label="Remove fact"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

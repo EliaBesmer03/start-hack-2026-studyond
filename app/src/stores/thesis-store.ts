@@ -18,6 +18,18 @@ export interface Message {
   content: string
 }
 
+export type KnowledgeCategory = 'interest' | 'decision' | 'constraint' | 'progress' | 'feedback'
+
+export interface KnowledgeFact {
+  id: string
+  content: string
+  sourceStage: ThesisStage
+  category: KnowledgeCategory
+  createdAt: number
+}
+
+type ChatHistories = Record<ThesisStage, Message[]>
+
 export interface Task {
   id: string
   stageId: ThesisStage
@@ -208,19 +220,29 @@ export interface TimelineEntry {
   duration: number    // number of weeks
 }
 
+const EMPTY_CHAT_HISTORIES: ChatHistories = {
+  'orientation': [],
+  'topic-discovery': [],
+  'supervisor-search': [],
+  'planning': [],
+  'execution-writing': [],
+}
+
 interface ThesisState {
   profile: ThesisProfile
   tasks: Task[]
-  chatHistory: Message[]
+  chatHistory: Message[]              // legacy — kept for migration
+  chatHistories: ChatHistories        // per-stage chat histories
+  knowledgeFacts: KnowledgeFact[]     // shared knowledge base across all stages
   thesisNotes: string[]
   universityGuidelines: string
   celebrateStage: ThesisStage | null
-  favouriteTopicIds: string[]           // up to 3 topics bookmarked in TopicExplore
-  acceptedExpertIds: string[]           // experts matched/accepted in SmartMatch
-  shortlistedSupervisorIds: string[]    // up to 3 supervisors shortlisted
-  savedMatchIds: string[]               // match card ids saved by user
-  finalDecision: FinalDecision | null   // final topic/company/supervisor combo
-  timeline: TimelineEntry[]             // user-built thesis timeline
+  favouriteTopicIds: string[]
+  acceptedExpertIds: string[]
+  shortlistedSupervisorIds: string[]
+  savedMatchIds: string[]
+  finalDecision: FinalDecision | null
+  timeline: TimelineEntry[]
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
@@ -232,6 +254,10 @@ interface ThesisState {
   updateTaskStatus: (taskId: string, status: TaskStatus) => void
   dismissNudge: (taskId: string) => void
   saveChatMessages: (msgs: Message[]) => void
+  saveStageChatMessages: (stage: ThesisStage, msgs: Message[]) => void
+  addKnowledgeFact: (fact: KnowledgeFact) => void
+  addKnowledgeFacts: (facts: KnowledgeFact[]) => void
+  removeKnowledgeFact: (id: string) => void
   addThesisNote: (note: string) => void
   removeThesisNote: (index: number) => void
   setUniversityGuidelines: (text: string) => void
@@ -259,6 +285,8 @@ export const useThesisStore = create<ThesisState>()(
       profile: initialProfile,
       tasks: DEFAULT_TASKS,
       chatHistory: [],
+      chatHistories: { ...EMPTY_CHAT_HISTORIES },
+      knowledgeFacts: [],
       thesisNotes: [],
       universityGuidelines: '',
       celebrateStage: null,
@@ -294,6 +322,8 @@ export const useThesisStore = create<ThesisState>()(
           profile: initialProfile,
           tasks: DEFAULT_TASKS,
           chatHistory: [],
+          chatHistories: { ...EMPTY_CHAT_HISTORIES },
+          knowledgeFacts: [],
           thesisNotes: [],
           universityGuidelines: '',
           celebrateStage: null,
@@ -337,7 +367,29 @@ export const useThesisStore = create<ThesisState>()(
           tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, nudge: undefined } : t)),
         })),
       saveChatMessages: (msgs) =>
-        set({ chatHistory: msgs.slice(-60) }), // keep last 60 messages
+        set({ chatHistory: msgs.slice(-60) }),
+      saveStageChatMessages: (stage, msgs) =>
+        set((s) => ({
+          chatHistories: {
+            ...s.chatHistories,
+            [stage]: msgs.slice(-60),
+          },
+        })),
+      addKnowledgeFact: (fact) =>
+        set((s) => ({
+          knowledgeFacts: [...s.knowledgeFacts, fact],
+        })),
+      addKnowledgeFacts: (facts) =>
+        set((s) => {
+          const existingContents = new Set(s.knowledgeFacts.map((f) => f.content.toLowerCase()))
+          const newFacts = facts.filter((f) => !existingContents.has(f.content.toLowerCase()))
+          if (newFacts.length === 0) return s
+          return { knowledgeFacts: [...s.knowledgeFacts, ...newFacts] }
+        }),
+      removeKnowledgeFact: (id) =>
+        set((s) => ({
+          knowledgeFacts: s.knowledgeFacts.filter((f) => f.id !== id),
+        })),
       addThesisNote: (note) =>
         set((s) => ({ thesisNotes: [...s.thesisNotes, note] })),
       removeThesisNote: (index) =>
