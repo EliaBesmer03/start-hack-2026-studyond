@@ -264,6 +264,7 @@ interface ThesisState {
   finalDecision: FinalDecision | null
   timeline: TimelineEntry[]
   savedLiterature: SavedLiterature[]
+  surveyAnswers: Record<string, 'a' | 'b' | number> | null
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
@@ -291,6 +292,8 @@ interface ThesisState {
   setTimeline: (entries: TimelineEntry[]) => void
   addLiterature: (record: SavedLiterature) => void
   removeLiterature: (id: string) => void
+  setSurveyAnswers: (answers: Record<string, 'a' | 'b' | number>) => void
+  clearSurveyAnswers: () => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -320,6 +323,7 @@ export const useThesisStore = create<ThesisState>()(
       finalDecision: null,
       timeline: [],
       savedLiterature: [],
+      surveyAnswers: null,
 
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
@@ -476,6 +480,10 @@ export const useThesisStore = create<ThesisState>()(
         set((s) => ({
           savedLiterature: s.savedLiterature.filter((r) => r.id !== id),
         })),
+      setSurveyAnswers: (answers) =>
+        set({ surveyAnswers: answers }),
+      clearSurveyAnswers: () =>
+        set({ surveyAnswers: null }),
     }),
     { name: 'studyond-thesis-v4' },
   ),

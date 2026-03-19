@@ -292,8 +292,8 @@ function SpiderChart({ scores, size = 340 }: { scores: number[]; size?: number }
   const axes = A_AXES_ORDERED
   const cx = size / 2
   const cy = size / 2
-  const maxR = size * 0.33
-  const labelR = size * 0.455
+  const maxR = size * 0.27
+  const labelR = size * 0.40
   const n = axes.length
   const step = (2 * Math.PI) / n
   const start = -Math.PI / 2
@@ -319,7 +319,7 @@ function SpiderChart({ scores, size = 340 }: { scores: number[]; size?: number }
   }
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full" style={{ maxWidth: size }}>
+    <svg viewBox={`0 0 ${size} ${size}`} className="w-full" overflow="visible">
       {rings.map((v, ri) => {
         const d = axes.map((_, i) => {
           const p = pt(i, (v / 10) * maxR)
@@ -472,11 +472,11 @@ function SummaryText({ text }: { text: string }) {
 type Phase = 'intro' | 'survey' | 'result'
 
 export function IntelligenceSurvey() {
-  const { completeFeature, setSurveyResults } = useThesisStore()
+  const { completeFeature, surveyAnswers, setSurveyAnswers, clearSurveyAnswers } = useThesisStore()
 
-  const [phase, setPhase] = useState<Phase>('intro')
+  const [phase, setPhase] = useState<Phase>(surveyAnswers ? 'result' : 'intro')
   const [step, setStep] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, 'a' | 'b' | number>>({})
+  const [answers, setAnswers] = useState<Record<string, 'a' | 'b' | number>>(surveyAnswers ?? {})
   const [direction, setDirection] = useState(1)
 
   const currentQ = ALL_QUESTIONS[step]
@@ -490,13 +490,8 @@ export function IntelligenceSurvey() {
       setDirection(1)
       setStep((s) => s + 1)
     } else {
-      // All done — compute and save results, show result
-      setSurveyResults({
-        personality: newAnswers,
-        academic: Object.fromEntries(
-          Object.entries(newAnswers).filter(([k]) => k.startsWith('a'))
-        ) as Record<string, 'a' | 'b'>,
-      })
+      // All done — persist and show result
+      setSurveyAnswers(newAnswers)
       completeFeature('intelligence-survey')
       setPhase('result')
     }
@@ -667,18 +662,19 @@ export function IntelligenceSurvey() {
         </div>
 
         {/* Spider web + top domains side by side */}
-        <div className="flex flex-col gap-8 md:flex-row md:items-start md:gap-10">
-          {/* Chart */}
-          <div className="w-full md:w-[360px] shrink-0">
-            <SpiderChart scores={combinedScores} size={360} />
+        <div className="flex flex-col gap-8 md:flex-row md:items-center md:gap-12">
+          {/* Chart — takes 60% */}
+          <div className="w-full md:w-[40%] shrink-0">
+            <SpiderChart scores={combinedScores} size={500} />
           </div>
 
-          {/* Top domains ranking */}
+          {/* Top domains ranking — takes remaining 40% */}
           <div className="flex-1 flex flex-col gap-3">
             <p className="ds-label text-muted-foreground mb-1">Domain fit</p>
             {sorted.map((ax, i) => (
-              <div key={ax} className="flex items-center gap-3">
+              <div key={ax} className="flex items-center gap-2">
                 <span className="ds-caption text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                <span className="ds-caption text-foreground w-32 shrink-0 truncate">{ax}</span>
                 <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
                   <motion.div
                     className="h-full bg-foreground rounded-full"
@@ -687,7 +683,6 @@ export function IntelligenceSurvey() {
                     transition={{ duration: 0.5, delay: i * 0.06, ease: 'easeOut' }}
                   />
                 </div>
-                <span className="ds-label text-foreground w-36 shrink-0">{ax}</span>
               </div>
             ))}
           </div>
@@ -715,7 +710,7 @@ export function IntelligenceSurvey() {
         {/* Retake */}
         <button
           type="button"
-          onClick={() => { setPhase('intro'); setStep(0); setAnswers({}) }}
+          onClick={() => { clearSurveyAnswers(); setPhase('intro'); setStep(0); setAnswers({}) }}
           className="self-start flex items-center gap-2 ds-caption text-muted-foreground transition-colors hover:text-foreground"
         >
           <RotateCcw className="size-3.5" />
