@@ -282,7 +282,6 @@ The formal supervisor meets students every few weeks at best, and the grading re
 
 ### Key design details
 - Feedback stays on the platform via Direct Messaging — no external file sharing required
-- LinkedIn OAuth import (not scraping) can pre-populate reader profiles for industry experts
 - The Co-Pilot can prepare students before sending a draft: "Here are 3 questions to ask your reader about this chapter"
 
 ---
