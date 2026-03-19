@@ -482,7 +482,7 @@ export function ThesisAlumni() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       {step !== 'done' && (
         <div className="mb-8">

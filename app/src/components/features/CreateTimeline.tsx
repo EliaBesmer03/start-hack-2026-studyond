@@ -339,7 +339,7 @@ export function CreateTimeline() {
   const totalH = CATEGORIES.length * ROW_H
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>

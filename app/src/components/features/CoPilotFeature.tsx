@@ -27,7 +27,7 @@ export function CoPilotFeature({ title, description, starters, featureId, onOpen
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-8">
         <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-ai">

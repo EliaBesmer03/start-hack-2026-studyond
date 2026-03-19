@@ -90,7 +90,7 @@ export function FinalDecision() {
     const company = finalDecision.companyId ? companies.find((c) => c.id === finalDecision.companyId) : null
 
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto w-full ds-layout-narrow">
         <div className="mb-6">
           <h2 className="ds-title-md text-foreground">Final Decision</h2>
           <p className="ds-body mt-2 text-muted-foreground">Your thesis combination is confirmed. You're ready for the planning phase.</p>
@@ -228,7 +228,7 @@ export function FinalDecision() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Final Decision</h2>

@@ -546,7 +546,7 @@ export function SmartMatch() {
   const hasSupervisors = shortlistedSupervisorIds.length > 0
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Smart Match</h2>

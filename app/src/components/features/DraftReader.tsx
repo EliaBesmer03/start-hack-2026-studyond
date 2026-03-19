@@ -321,7 +321,7 @@ export function DraftReader() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-8">
         <h2 className="ds-title-md text-foreground">Draft Reader</h2>

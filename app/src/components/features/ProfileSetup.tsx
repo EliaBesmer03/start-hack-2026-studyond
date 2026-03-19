@@ -58,7 +58,7 @@ export function ProfileSetup() {
 
   if (saved) {
     return (
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto w-full ds-layout-narrow">
         <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-secondary/30 py-16 text-center">
           <div className="flex size-12 items-center justify-center rounded-full bg-foreground">
             <Check className="size-5 text-background" strokeWidth={2.5} />
@@ -96,7 +96,7 @@ export function ProfileSetup() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-6">
         <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-secondary">
