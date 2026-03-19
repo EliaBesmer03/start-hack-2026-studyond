@@ -12,6 +12,12 @@ function nextStage(current: ThesisStage): ThesisStage | null {
 
 export type TaskStatus = 'ready' | 'in-progress' | 'done'
 
+export interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface Task {
   id: string
   stageId: ThesisStage
@@ -199,6 +205,11 @@ const DEFAULT_TASKS: Task[] = [
 interface ThesisState {
   profile: ThesisProfile
   tasks: Task[]
+  chatHistory: Message[]
+  thesisNotes: string[]
+  universityGuidelines: string
+  celebrateStage: ThesisStage | null
+
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
   addAnswer: (answer: WizardAnswer) => void
@@ -206,6 +217,11 @@ interface ThesisState {
   resetProfile: () => void
   updateTaskStatus: (taskId: string, status: TaskStatus) => void
   dismissNudge: (taskId: string) => void
+  saveChatMessages: (msgs: Message[]) => void
+  addThesisNote: (note: string) => void
+  removeThesisNote: (index: number) => void
+  setUniversityGuidelines: (text: string) => void
+  clearCelebration: () => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -220,6 +236,11 @@ export const useThesisStore = create<ThesisState>()(
     (set) => ({
       profile: initialProfile,
       tasks: DEFAULT_TASKS,
+      chatHistory: [],
+      thesisNotes: [],
+      universityGuidelines: '',
+      celebrateStage: null,
+
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
       setConcern: (concern) =>
@@ -238,7 +259,15 @@ export const useThesisStore = create<ThesisState>()(
         })),
       completeOnboarding: () =>
         set((s) => ({ profile: { ...s.profile, completedOnboarding: true } })),
-      resetProfile: () => set({ profile: initialProfile, tasks: DEFAULT_TASKS }),
+      resetProfile: () =>
+        set({
+          profile: initialProfile,
+          tasks: DEFAULT_TASKS,
+          chatHistory: [],
+          thesisNotes: [],
+          universityGuidelines: '',
+          celebrateStage: null,
+        }),
       updateTaskStatus: (taskId, status) =>
         set((s) => {
           const updatedTasks = s.tasks.map((t) => (t.id === taskId ? { ...t, status } : t))
@@ -249,12 +278,23 @@ export const useThesisStore = create<ThesisState>()(
           return {
             tasks: updatedTasks,
             profile: next ? { ...s.profile, stage: next } : s.profile,
+            celebrateStage: next ? currentStage : s.celebrateStage,
           }
         }),
       dismissNudge: (taskId) =>
         set((s) => ({
           tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, nudge: undefined } : t)),
         })),
+      saveChatMessages: (msgs) =>
+        set({ chatHistory: msgs.slice(-60) }), // keep last 60 messages
+      addThesisNote: (note) =>
+        set((s) => ({ thesisNotes: [...s.thesisNotes, note] })),
+      removeThesisNote: (index) =>
+        set((s) => ({ thesisNotes: s.thesisNotes.filter((_, i) => i !== index) })),
+      setUniversityGuidelines: (text) =>
+        set({ universityGuidelines: text }),
+      clearCelebration: () =>
+        set({ celebrateStage: null }),
     }),
     { name: 'studyond-thesis-v2' },
   ),

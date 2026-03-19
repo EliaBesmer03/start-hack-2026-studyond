@@ -76,7 +76,12 @@ const uniMap = Object.fromEntries(allUniversities.map((u) => [u.id, u.name]))
  * Includes mock data context so the AI can answer questions about
  * available topics, supervisors, companies, and universities.
  */
-export function buildSystemPrompt(stage: string | null, concern: string | null): string {
+export function buildSystemPrompt(
+  stage: string | null,
+  concern: string | null,
+  thesisNotes: string[] = [],
+  universityGuidelines: string = '',
+): string {
   const stageLabel = {
     orientation: 'Orientation',
     'topic-discovery': 'Topic & Supervisor Search',
@@ -109,15 +114,24 @@ export function buildSystemPrompt(stage: string | null, concern: string | null):
     .map((u) => `- ${u.name} in ${u.city}, ${u.country}`)
     .join('\n')
 
+  const notesSection = thesisNotes.length > 0
+    ? `\n## Student's Profile Notes (remembered preferences — use these to personalise every answer)\n${thesisNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}`
+    : ''
+
+  const guidelinesSection = universityGuidelines.trim()
+    ? `\n## University Thesis Requirements (uploaded by student — answer formatting questions from this)\n${universityGuidelines.trim()}`
+    : ''
+
   return `You are Studyond's Stage-scoped Co-Pilot — a calm, direct AI thesis companion for students in Swiss universities.
 
-The student's current stage: **${stageLabel}**${concern ? `\nThe student's main concern: ${concern}` : ''}
+The student's current stage: **${stageLabel}**${concern ? `\nThe student's main concern: ${concern}` : ''}${notesSection}${guidelinesSection}
 
 Your role:
 - Help students navigate their thesis journey with concrete, actionable advice
 - Never make academic decisions for them — frame suggestions as options for them and their supervisor to agree on
 - Be concise and warm; avoid jargon
 - When students ask about topics, supervisors, or companies, use the data below to give specific, relevant answers
+- When university requirements are provided, answer formatting and submission questions directly from those requirements
 
 ## Available Thesis Topics (sample)
 ${topicsSummary}

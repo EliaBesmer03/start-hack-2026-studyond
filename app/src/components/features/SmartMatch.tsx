@@ -6,11 +6,11 @@
  * Pre-loaded with 4 real matches from mock data.
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Building2, GraduationCap, Check, X, Bookmark,
-  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck,
+  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -18,6 +18,7 @@ import {
   fieldName, companyName,
   type Topic, type Supervisor, type Company,
 } from '@/data/mock'
+import { useThesisStore } from '@/stores/thesis-store'
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -303,30 +304,65 @@ function MatchCardView({
 
 // ── Toast for accepted match ──────────────────────────────────────────
 
-function AcceptedToast({ topic }: { topic: Topic }) {
+function AcceptedToast({ topic, supervisor, company }: { topic: Topic; supervisor: Supervisor | null; company: Company | null }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-secondary px-4 py-3"
+      className="mt-4 overflow-hidden rounded-xl border border-border bg-secondary"
     >
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-        <Check className="size-3.5" strokeWidth={2.5} />
-      </span>
-      <div>
-        <p className="ds-label text-foreground">Match accepted</p>
-        <p className="ds-caption text-muted-foreground">
-          We'll propose an intro meeting for "{topic.title}".
-        </p>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
+          <Check className="size-3.5" strokeWidth={2.5} />
+        </span>
+        <div>
+          <p className="ds-label text-foreground">Match accepted</p>
+          <p className="ds-caption text-muted-foreground">
+            We'll propose an intro meeting for "{topic.title}".
+          </p>
+        </div>
       </div>
+      {(supervisor || company) && (
+        <div className="border-t border-border bg-secondary/60 px-4 py-2.5">
+          <p className="ds-caption text-muted-foreground">
+            Next step: Both{' '}
+            {supervisor && <span className="font-medium text-foreground">{supervisor.lastName}</span>}
+            {supervisor && company && ' and '}
+            {company && <span className="font-medium text-foreground">{company.name}</span>}
+            {' '}will receive an intro request. A shared context summary will be sent to all parties.
+          </p>
+        </div>
+      )}
     </motion.div>
   )
+}
+
+// ── Field mapping from GPS answers ───────────────────────────────────
+
+const FIELD_LABEL: Record<string, string> = {
+  business: 'Business & Economics',
+  cs: 'Computer Science',
+  social: 'Social Sciences',
+  science: 'Natural Sciences',
 }
 
 // ── Main component ────────────────────────────────────────────────────
 
 export function SmartMatch() {
-  const [cards] = useState(MATCH_CARDS)
+  const { profile } = useThesisStore()
+  const fieldAnswer = profile.answers.find((a) => a.questionIndex === 1)?.value
+  const fieldLabel = fieldAnswer ? FIELD_LABEL[fieldAnswer] : null
+
+  // Sort cards by profile relevance: CS/ML fields get higher-scored cards first
+  const sortedCards = useMemo(() => {
+    if (!fieldAnswer || fieldAnswer === 'not-sure') return MATCH_CARDS
+    // CS → ML/AI topics first (m1, m2); Business → m3, m4 first
+    if (fieldAnswer === 'cs') return [...MATCH_CARDS].sort((a, b) => b.score - a.score)
+    if (fieldAnswer === 'business') return [...MATCH_CARDS].sort((a, b) => a.score - b.score)
+    return MATCH_CARDS
+  }, [fieldAnswer])
+
+  const [cards] = useState(sortedCards)
   const [actions, setActions] = useState<Record<string, CardAction>>({})
   const [saved, setSaved] = useState<MatchCard[]>([])
   const [tab, setTab] = useState<'matches' | 'saved'>('matches')
@@ -352,6 +388,14 @@ export function SmartMatch() {
           Bundled matches — topic, supervisor, and company selected together based on your profile.
           Accept to trigger a three-way intro.
         </p>
+        {fieldLabel && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2">
+            <Sparkles className="size-3.5 shrink-0 text-muted-foreground" />
+            <p className="ds-caption text-muted-foreground">
+              Matches ordered for your <span className="font-medium text-foreground">{fieldLabel}</span> profile
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -376,7 +420,7 @@ export function SmartMatch() {
             {activeCards.map((card) => (
               <div key={card.id}>
                 <MatchCardView card={card} onAction={handleAction} />
-                {actions[card.id] === 'accepted' && <AcceptedToast topic={card.topic} />}
+                {actions[card.id] === 'accepted' && <AcceptedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />}
               </div>
             ))}
           </AnimatePresence>

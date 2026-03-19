@@ -322,3 +322,164 @@ The formal supervisor meets students every few weeks at best, and the grading re
 | University formatting rules | Draft reader is briefed on institutional requirements |
 
 The two parts are **independently demoable** but **exponentially more powerful together**. Part 1 builds the student's context profile; Part 2 uses it to make every human connection on the platform smarter.
+
+---
+
+---
+
+# Current App Standing & Next Steps
+
+*Assessment date: 2026-03-19*
+
+## What is already built
+
+| Feature | Status | Notes |
+|---|---|---|
+| 1A — Thesis GPS (onboarding wizard) | ✅ Built | 3-question animated wizard, stage detection, auto-advance |
+| 1B — Journey Map Sidebar | ✅ Built | 5 collapsible stages, current stage highlighted, checkmarks for done |
+| 1C — Thesis Board (Kanban) | ⚠️ Partial | Board exists with 22 tasks + drag-drop, but uses 3 columns (Ready / In Progress / Done) instead of the strategy's 5 stage-columns |
+| 1D — Stage-scoped Co-Pilot | ⚠️ Partial | Streaming Claude chat works; stage-scoped prompts in place; university PDF upload and manual profile notes are missing |
+| 2A — Smart Match Engine | ✅ Built | 4 pre-curated match cards, match score, "Why this match?", 3-way intro trigger |
+| 2B — Interview Partner Matching | ✅ Built | 3-question flow, keyword scoring, outreach message generation |
+| 2C — Thesis Twin | ✅ Built | Opt-in → proposal → shared space with updates/deadlines/milestones tabs |
+| 2D — Draft Reader | ✅ Built | Multi-phase form, Co-Pilot tips, reader card results, confirmation state |
+| Co-Pilot Chat | ⚠️ Partial | Works end-to-end; context resets each session (no cross-session accumulation) |
+| Mock data | ✅ Complete | 50+ students, 20+ topics, 15+ supervisors, 10+ companies, 20+ experts |
+
+**Placeholder / "Coming soon" screens (not yet built):**
+- Profile Setup
+- Topic Explore
+- Topic Match (distinct from Smart Match)
+- Supervisor Search
+- Methodology Guide
+- Stage-specific Co-Pilots (Planning, Execution, Writing)
+- Direct Messaging (referenced in 2B and 2D but not implemented)
+
+---
+
+## Next Steps — Priority Order
+
+Priority is ordered for maximum demo impact. Each item is scoped to be independently completable.
+
+---
+
+### P0 — Critical fixes (app must work cleanly end-to-end)
+
+#### P0.1 — Fix Thesis Board columns to match the 5-stage strategy
+**Current state:** Board uses 3 generic columns (Ready / In Progress / Done).
+**Required:** 5 columns, one per thesis stage (Orientation / Topic & Supervisor / Planning / Execution / Writing & Finalization), each with pre-populated task cards for that stage only.
+**Why it matters:** This is the centrepiece demo view. Judges will immediately see the mismatch with the pitch.
+**How to fix:**
+- Replace the 3-column layout with 5 fixed stage columns
+- Filter each column's tasks by `stageId` instead of `status`
+- Keep the `ready / in-progress / done` toggle as a per-card state (small dot/pill on the card itself)
+- Pin the student's current stage column (scroll it into view on load)
+
+#### P0.2 — Persist Co-Pilot context across sessions
+**Current state:** Chat history is in-memory only; resets on page refresh.
+**Required:** Accumulated context (topics explored, methodology preference, deadlines, feedback received) must survive sessions.
+**How to fix:**
+- Add `chatHistory: Message[]` and `thesisNotes: string[]` to the Zustand store (already persisted to localStorage)
+- On Co-Pilot open, seed the conversation with the last N messages from the store
+- Expose a "Add note to profile" button in the chat panel that appends free-text to `thesisNotes`
+- Inject `thesisNotes` into the system prompt so the Co-Pilot "remembers" stated preferences
+
+#### P0.3 — Connect GPS entry point to board starting view
+**Current state:** GPS detects the stage but the board always loads at the same scroll position.
+**Required:** After onboarding, the board scrolls to and highlights the student's detected entry-point stage column.
+**How to fix:**
+- On `completeOnboarding()`, store the detected `stageId` in the profile (already stored)
+- In ThesisBoard, read `profile.stage` on mount and scroll the corresponding column into view with a brief highlight animation (Framer Motion `layoutId` or a pulse class)
+
+#### P0.4 — Remove or replace all "Coming soon" stubs with minimal working screens
+**Current state:** 8 sidebar items open a blank "Coming soon" pane — dead ends in a demo.
+**Required:** Each item should show at least a skeleton or a contextual message explaining what this does, or be hidden from the sidebar until built.
+**How to fix (fastest path):**
+- For items that map to existing Part 2 features (Smart Match, Interview Partners, Thesis Twin, Draft Reader): verify sidebar links actually open those panes (check `featureId` routing in Dashboard.tsx)
+- For items not yet built (Profile Setup, Topic Explore, Topic Match, Supervisor Search, Methodology Guide, stage-specific Co-Pilots): replace "Coming soon" with a one-screen placeholder that describes the feature and shows a "powered by Co-Pilot" entry point that opens the chat pre-loaded with a relevant starter prompt
+- This turns every dead end into a usable chat entry point
+
+---
+
+### P1 — High impact for demo quality
+
+#### P1.1 — University requirements upload (Feature 1D)
+**What to build:** A file upload input (PDF or text) accessible from the board header or a settings drawer. On upload, extract or store the text and inject it into the Co-Pilot system prompt.
+**Minimum viable version:** Accept a text paste (not PDF parsing) labelled "Paste your university's thesis guidelines". Store in Zustand. Inject as a block in the system prompt: `University requirements: <pasted text>`. The Co-Pilot can then answer formatting questions from it.
+**Demo moment:** Paste 3 bullet points of fake university rules → ask the Co-Pilot "What are the formatting requirements?" → it answers accurately. Judges will extrapolate to full PDF ingestion.
+
+#### P1.2 — Smart Match using thesis profile signals
+**Current state:** Smart Match shows 4 hard-coded cards regardless of student profile.
+**Required:** Cards should filter/sort by the student's detected stage and field from the GPS answers.
+**How to fix:**
+- Read `profile.stage` and `profile.answers` from the store in SmartMatch.tsx
+- Filter the 4 mock cards to show only stage-appropriate matches (e.g., hide interview partner matches for Orientation-stage students)
+- Show a "Matched to your profile" badge referencing the student's field (e.g., "Your interest in ML · 87% aligned")
+- This connects Part 1 to Part 2 visibly — a key pitch moment
+
+#### P1.3 — Stage progression feedback loop
+**Current state:** Stage auto-advances in the store when all tasks in a stage are done, but there is no visible celebration or clear transition moment.
+**Required:** When a stage completes, show a brief full-screen or modal congratulation with the next stage name and a CTA to open the Co-Pilot for that stage.
+**How to fix:**
+- Listen for stage changes in ThesisBoard or App.tsx
+- Trigger a Framer Motion overlay or Dialog with stage-completion copy (e.g., "Planning complete — time to execute 🎯")
+- CTA: "Open Co-Pilot for Execution stage" → opens chat pre-loaded with the execution starter prompt
+
+#### P1.4 — Manual notes in thesis profile
+**Current state:** No mechanism for students to add their own notes to the profile.
+**Required:** Students can write free-text notes that the Co-Pilot uses in future responses.
+**How to fix:**
+- Add a "Notes" tab or section in the Co-Pilot panel (below the chat or as a drawer)
+- Text area + save button → writes to `thesisNotes[]` in the Zustand store
+- Pre-populate with one example note pulled from GPS answer (e.g., "I'm interested in sustainable supply chains" from Q2)
+
+---
+
+### P2 — Polish and robustness
+
+#### P2.1 — End-to-end flow smoke test
+Walk the full demo path as a judge would:
+1. Fresh load → GPS wizard → board opens at detected stage
+2. Toggle task status → progress bar updates → stage advances
+3. Click Smart Match sidebar item → profile-aware match cards load
+4. Click Interview Partners → complete 3-question flow → expert cards appear
+5. Open Co-Pilot → ask a stage-relevant question → get streaming response
+6. Paste university guidelines → ask formatting question → Co-Pilot answers from it
+7. Refresh page → chat history and task status persist (localStorage)
+
+Document any broken step and fix before demo.
+
+#### P2.2 — Mobile layout pass
+Test every feature pane on a 390px viewport (iPhone 15 width):
+- Smart Match cards must not overflow horizontally
+- Co-Pilot panel must open as full-screen on mobile (currently 380px fixed — may clip on small screens)
+- Kanban board columns need horizontal scroll on mobile
+
+#### P2.3 — Loading and error states
+- Co-Pilot: confirm the error message shows clearly when `VITE_ANTHROPIC_API_KEY` is missing (don't silently fail)
+- Interview Partners and Draft Reader: if the expert list is empty (no keyword match), show a "No matches yet — try broadening your description" message instead of a blank results pane
+- SmartMatch: if all cards are swiped, show a "You've reviewed all matches — check back soon" end state instead of an empty div
+
+#### P2.4 — Consistent visual language
+- All feature panes should use the same card shadow, border radius, and spacing tokens from `App.css`
+- Badge colours for thesis stages should be consistent across the board, sidebar, Co-Pilot, and match cards (currently each component defines its own colour mapping)
+- "Powered by Co-Pilot" entry points (from P0.4 stubs) should use the `.bg-ai` gradient class already defined in `App.css`
+
+#### P2.5 — Demo environment hardening
+- Add a "Reset demo" button (hidden in settings or accessible via keyboard shortcut) that clears localStorage and reloads — useful between judge walkthroughs
+- Ensure the `VITE_ANTHROPIC_API_KEY` env var is set in the deployment environment before the presentation
+- Confirm the Vite dev server (or `npm run build` + `npm run preview`) is running stably on the demo machine
+
+---
+
+## Recommended build order for the remaining time
+
+```
+Hour 1–2:  P0.1 (Fix board columns) + P0.4 (Remove dead ends)
+Hour 3:    P0.2 (Persist Co-Pilot context) + P0.3 (GPS → board scroll)
+Hour 4:    P1.1 (University guidelines paste) + P1.2 (Smart Match uses profile)
+Hour 5:    P1.3 (Stage completion celebration) + P2.1 (End-to-end smoke test)
+Hour 6:    P2.2–P2.5 (Polish pass, mobile, error states, demo reset)
+```
+
+The board column fix (P0.1) and dead-end removal (P0.4) should be done first — they are the highest-visibility gaps and both are achievable in under 2 hours.

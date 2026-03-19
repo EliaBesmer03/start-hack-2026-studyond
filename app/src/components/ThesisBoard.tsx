@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -28,9 +28,9 @@ const KANBAN_COLUMNS: { id: TaskStatus; label: string; description: string }[] =
 
 const STAGE_TAG: Record<ThesisStage, { label: string; cls: string }> = {
   orientation:         { label: 'Orientation',        cls: 'bg-secondary text-muted-foreground' },
-  'topic-discovery':   { label: 'Topic & Supervisor', cls: 'bg-secondary text-foreground' },
-  'supervisor-search': { label: 'Planning',           cls: 'bg-foreground/10 text-foreground' },
-  planning:            { label: 'Execution',          cls: 'bg-foreground/15 text-foreground' },
+  'topic-discovery':   { label: 'Topic & Supervisor', cls: 'bg-foreground/8 text-foreground' },
+  'supervisor-search': { label: 'Planning',           cls: 'bg-foreground/12 text-foreground' },
+  planning:            { label: 'Execution',          cls: 'bg-foreground/16 text-foreground' },
   'execution-writing': { label: 'Writing',            cls: 'bg-foreground/20 text-foreground' },
 }
 
@@ -115,7 +115,6 @@ function TaskCard({
       {/* Bottom row: open feature + advance status */}
       {!overlay && (
         <div className="flex items-center justify-between gap-2 pt-1">
-          {/* Open feature button */}
           {!isDone && onOpen && (
             <button
               type="button"
@@ -127,7 +126,6 @@ function TaskCard({
             </button>
           )}
 
-          {/* Advance / complete */}
           <button
             type="button"
             onClick={() => updateTaskStatus(task.id, NEXT_STATUS[task.status])}
@@ -213,11 +211,13 @@ function StageFilterPill({
   stageId,
   selected,
   count,
+  isCurrent,
   onToggle,
 }: {
   stageId: ThesisStage
   selected: boolean
   count: number
+  isCurrent: boolean
   onToggle: () => void
 }) {
   const tag = STAGE_TAG[stageId]
@@ -233,6 +233,7 @@ function StageFilterPill({
     >
       {selected && <Check className="size-3" strokeWidth={2.5} />}
       {tag.label}
+      {isCurrent && <span className="size-1.5 rounded-full bg-foreground/40" />}
       <span className="opacity-60">{count}</span>
     </button>
   )
@@ -241,14 +242,14 @@ function StageFilterPill({
 /* ── Stage progress summary ────────────────────────────────────────── */
 
 function StageProgress({ tasks }: { tasks: Task[] }) {
-  const stageIds = [...new Set(tasks.map((t) => t.stageId))] as ThesisStage[]
+  const stageIds = STAGES.map((s) => s.id) as ThesisStage[]
   return (
     <div className="mb-6 flex flex-wrap gap-3">
       {stageIds.map((sid) => {
         const stageTasks = tasks.filter((t) => t.stageId === sid)
         const done = stageTasks.filter((t) => t.status === 'done').length
         const total = stageTasks.length
-        const pct = Math.round((done / total) * 100)
+        const pct = total > 0 ? Math.round((done / total) * 100) : 0
         const tag = STAGE_TAG[sid]
         return (
           <div key={sid} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
@@ -278,11 +279,25 @@ interface ThesisBoardProps {
 }
 
 export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
-  const { tasks, updateTaskStatus } = useThesisStore()
+  const { tasks, updateTaskStatus, profile } = useThesisStore()
   const [activeId, setActiveId] = useState<string | null>(null)
 
+  const currentStage = (profile.stage ?? 'orientation') as ThesisStage
   const allStageIds = STAGES.map((s) => s.id) as ThesisStage[]
-  const [selectedStages, setSelectedStages] = useState<Set<ThesisStage>>(new Set(allStageIds))
+
+  // Pre-select current stage on mount; allow toggling others
+  const [selectedStages, setSelectedStages] = useState<Set<ThesisStage>>(
+    new Set([currentStage]),
+  )
+
+  // Re-sync when the current stage advances
+  useEffect(() => {
+    setSelectedStages((prev) => {
+      // If current stage already selected keep it; otherwise add it
+      if (prev.has(currentStage)) return prev
+      return new Set([currentStage])
+    })
+  }, [currentStage])
 
   const toggleStage = (id: ThesisStage) => {
     setSelectedStages((prev) => {
@@ -294,6 +309,15 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
       }
       return next
     })
+  }
+
+  const showAll = selectedStages.size === allStageIds.length
+  const toggleAll = () => {
+    if (showAll) {
+      setSelectedStages(new Set([currentStage]))
+    } else {
+      setSelectedStages(new Set(allStageIds))
+    }
   }
 
   const filteredTasks = tasks.filter((t) => selectedStages.has(t.stageId))
@@ -327,14 +351,26 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="ds-caption flex items-center gap-1 text-muted-foreground">
             <Filter className="size-3" />
-            Filter
+            Stage
           </span>
+          <button
+            type="button"
+            onClick={toggleAll}
+            className={`ds-caption flex items-center gap-1.5 rounded-full border px-3 py-1 font-medium transition-all duration-150 ${
+              showAll
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border bg-background text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+            }`}
+          >
+            All
+          </button>
           {allStageIds.map((id) => (
             <StageFilterPill
               key={id}
               stageId={id}
               selected={selectedStages.has(id)}
               count={tasks.filter((t) => t.stageId === id).length}
+              isCurrent={id === currentStage}
               onToggle={() => toggleStage(id)}
             />
           ))}
