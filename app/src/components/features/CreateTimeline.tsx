@@ -351,7 +351,7 @@ export function CreateTimeline() {
       </div>
 
       {/* Palette */}
-      <div className="mb-5 rounded-2xl border border-border bg-background p-4">
+      <div data-tutorial="timeline-palette" className="mb-5 rounded-2xl border border-border bg-background p-4">
         <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
           <Calendar className="size-3" />
           Add elements — click to append to the right of that row
