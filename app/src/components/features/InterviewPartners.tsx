@@ -1,17 +1,17 @@
 /**
- * Feature 2B — Interview Partner Matching
- *
- * 3-question guided flow → surfaces matched experts with domain, availability,
- * and a pre-written outreach message. Connection via Direct Messaging.
+ * Feature: Interview Partners
+ * Experts matched in SmartMatch appear pre-populated at the top.
+ * Additional experts can be found via the 3-step guided flow.
  */
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, Building2, Check, Send,
-  Video, Mic, FileText, ChevronLeft,
+  Video, Mic, FileText, ChevronLeft, Sparkles,
 } from 'lucide-react'
 import { experts, companies, fields, byId, type Expert } from '@/data/mock'
+import { useThesisStore } from '@/stores/thesis-store'
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -74,7 +74,6 @@ function QuestionStep({
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Progress */}
       <div className="mb-6 flex items-center gap-3">
         <div className="flex gap-1.5">
           {Array.from({ length: total }).map((_, i) => (
@@ -95,17 +94,36 @@ function QuestionStep({
   )
 }
 
-// ── Expert result card ────────────────────────────────────────────────
+// ── Expert card ───────────────────────────────────────────────────────
 
 function ExpertCard({
-  expert, score, answers, onConnect,
+  expert, score, answers, onConnect, sent, preMatched,
 }: {
-  expert: Expert; score: number; answers: Answers; onConnect: (id: string) => void
+  expert: Expert
+  score: number
+  answers: Answers
+  onConnect: (id: string) => void
+  sent: boolean
+  preMatched?: boolean
 }) {
   const [showMessage, setShowMessage] = useState(false)
   const company = byId(companies, expert.companyId)
   const message = buildOutreach(expert, answers)
   const expertFields = expert.fieldIds.slice(0, 2).map((fid) => byId(fields, fid)?.name ?? fid)
+
+  if (sent) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+        <span className="flex size-6 items-center justify-center rounded-full bg-foreground text-background">
+          <Check className="size-3.5" strokeWidth={2.5} />
+        </span>
+        <div>
+          <p className="ds-label text-foreground">{expert.firstName} {expert.lastName}</p>
+          <p className="ds-caption text-muted-foreground">Request sent via Direct Messaging</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -113,7 +131,6 @@ function ExpertCard({
       animate={{ opacity: 1, y: 0 }}
       className="overflow-hidden rounded-xl border border-border bg-background"
     >
-      {/* Header */}
       <div className="flex items-start justify-between px-4 py-4">
         <div>
           <div className="flex items-center gap-2">
@@ -125,9 +142,15 @@ function ExpertCard({
                 Open to interviews
               </span>
             )}
+            {preMatched && (
+              <span className="rounded-full bg-secondary px-2 py-0.5 ds-badge font-medium text-foreground flex items-center gap-1">
+                <Sparkles className="size-2.5" />
+                Matched
+              </span>
+            )}
           </div>
           <p className="ds-small mt-0.5 text-muted-foreground">{expert.title}</p>
-          <p className="ds-caption flex items-center gap-1 mt-1 text-muted-foreground">
+          <p className="ds-caption mt-1 flex items-center gap-1 text-muted-foreground">
             <Building2 className="size-3" />
             {company?.name}
           </p>
@@ -137,7 +160,6 @@ function ExpertCard({
         </span>
       </div>
 
-      {/* Fields */}
       <div className="flex flex-wrap gap-1.5 px-4 pb-3">
         {expertFields.map((f) => (
           <span key={f} className="ds-caption rounded-full bg-secondary px-2.5 py-0.5 text-muted-foreground">
@@ -146,14 +168,12 @@ function ExpertCard({
         ))}
       </div>
 
-      {/* Bio */}
       {expert.about && (
         <p className="ds-small border-t border-border px-4 py-3 text-muted-foreground line-clamp-2">
           {expert.about}
         </p>
       )}
 
-      {/* Outreach message toggle */}
       {showMessage && (
         <div className="border-t border-border bg-secondary/30 px-4 py-3">
           <p className="ds-caption mb-2 font-medium text-muted-foreground">Suggested outreach message</p>
@@ -163,7 +183,6 @@ function ExpertCard({
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex items-center gap-2 border-t border-border px-4 py-3">
         <button
           type="button"
@@ -189,17 +208,23 @@ function ExpertCard({
 // ── Main component ────────────────────────────────────────────────────
 
 export function InterviewPartners() {
+  const { completeFeature, acceptedExpertIds } = useThesisStore()
   const [step, setStep] = useState(1)
   const [answers, setAnswers] = useState<Answers>({ topic: '', expertise: '', format: null })
   const [results, setResults] = useState<{ expert: Expert; score: number }[] | null>(null)
   const [sent, setSent] = useState<Set<string>>(new Set())
 
+  // Experts pre-matched from SmartMatch
+  const preMatchedExperts = acceptedExpertIds
+    .map((id) => experts.find((e) => e.id === id))
+    .filter(Boolean) as Expert[]
+
   const handleNext = () => {
     if (step < 3) {
       setStep((s) => s + 1)
     } else {
-      // Compute matches
       const scored = experts
+        .filter((e) => !acceptedExpertIds.includes(e.id)) // exclude pre-matched
         .filter((e) => e.offerInterviews || Math.random() > 0.3)
         .map((e) => ({ expert: e, score: scoreExpert(e, answers) }))
         .filter((r) => r.score > 10)
@@ -215,19 +240,50 @@ export function InterviewPartners() {
     step === 2 ? answers.expertise.trim().length > 4 :
     step === 3 ? answers.format !== null : false
 
-  const handleConnect = (id: string) => setSent((prev) => new Set([...prev, id]))
+  const handleConnect = (id: string) => {
+    completeFeature('interview-partners')
+    setSent((prev) => new Set([...prev, id]))
+  }
+
+  const defaultAnswers: Answers = { topic: 'thesis research', expertise: 'industry expertise', format: 'remote' }
 
   return (
     <div className="mx-auto max-w-xl">
       {/* Header */}
       <div className="mb-8">
-        <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Feature 2B</p>
-        <h2 className="ds-title-md mt-1 text-foreground">Interview Partners</h2>
+        <h2 className="ds-title-md text-foreground">Interview Partners</h2>
         <p className="ds-body mt-2 text-muted-foreground">
-          Tell us about your research and we'll match you with industry experts who can provide
-          primary insights for your thesis.
+          Connect with industry experts for primary research interviews.
+          {preMatchedExperts.length > 0 && ' Experts from your Smart Match are ready to contact.'}
         </p>
       </div>
+
+      {/* Pre-matched experts from SmartMatch */}
+      {preMatchedExperts.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="size-3.5 text-muted-foreground" />
+            <p className="ds-label text-foreground">From your Smart Match</p>
+          </div>
+          <div className="space-y-3">
+            {preMatchedExperts.map((expert) => (
+              <ExpertCard
+                key={expert.id}
+                expert={expert}
+                score={90}
+                answers={defaultAnswers}
+                onConnect={handleConnect}
+                sent={sent.has(expert.id)}
+                preMatched
+              />
+            ))}
+          </div>
+          <div className="mt-6 border-t border-border pt-6">
+            <p className="ds-label mb-1 text-foreground">Find additional experts</p>
+            <p className="ds-small text-muted-foreground">Describe your research to get matched with more interview partners.</p>
+          </div>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {step === 1 && (
@@ -243,7 +299,7 @@ export function InterviewPartners() {
               type="button"
               disabled={!canAdvance}
               onClick={handleNext}
-              className="mt-4 flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
+              className="mt-4 flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
             >
               Next <ArrowRight className="size-4" />
             </button>
@@ -260,14 +316,14 @@ export function InterviewPartners() {
               className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 ds-body text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
             />
             <div className="mt-4 flex gap-2">
-              <button type="button" onClick={() => setStep(1)} className="flex items-center gap-1 rounded-full border border-border px-4 py-2 ds-label text-muted-foreground transition-all hover:text-foreground">
+              <button type="button" onClick={() => setStep(1)} className="flex items-center gap-1 rounded-full border border-border px-4 py-2 ds-label text-muted-foreground transition-colors hover:text-foreground">
                 <ChevronLeft className="size-4" /> Back
               </button>
               <button
                 type="button"
                 disabled={!canAdvance}
                 onClick={handleNext}
-                className="flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
+                className="flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
               >
                 Next <ArrowRight className="size-4" />
               </button>
@@ -289,7 +345,7 @@ export function InterviewPartners() {
                   key={id}
                   type="button"
                   onClick={() => setAnswers((a) => ({ ...a, format: id }))}
-                  className={`flex items-center gap-4 rounded-xl border px-4 py-3 text-left transition-all ${
+                  className={`flex items-center gap-4 rounded-xl border px-4 py-3 text-left transition-colors ${
                     answers.format === id
                       ? 'border-foreground bg-foreground text-background'
                       : 'border-border bg-background text-foreground hover:border-foreground/30'
@@ -305,14 +361,14 @@ export function InterviewPartners() {
               ))}
             </div>
             <div className="mt-4 flex gap-2">
-              <button type="button" onClick={() => setStep(2)} className="flex items-center gap-1 rounded-full border border-border px-4 py-2 ds-label text-muted-foreground transition-all hover:text-foreground">
+              <button type="button" onClick={() => setStep(2)} className="flex items-center gap-1 rounded-full border border-border px-4 py-2 ds-label text-muted-foreground transition-colors hover:text-foreground">
                 <ChevronLeft className="size-4" /> Back
               </button>
               <button
                 type="button"
                 disabled={!canAdvance}
                 onClick={handleNext}
-                className="flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
+                className="flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
               >
                 Find partners <ArrowRight className="size-4" />
               </button>
@@ -327,7 +383,7 @@ export function InterviewPartners() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="mb-5 flex items-center justify-between">
-              <p className="ds-label text-foreground">{results.length} experts matched</p>
+              <p className="ds-label text-foreground">{results.length} additional experts matched</p>
               <button
                 type="button"
                 onClick={() => { setStep(1); setResults(null); setAnswers({ topic: '', expertise: '', format: null }) }}
@@ -339,25 +395,14 @@ export function InterviewPartners() {
 
             <div className="space-y-3">
               {results.map(({ expert, score }) => (
-                sent.has(expert.id) ? (
-                  <div key={expert.id} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-foreground text-background">
-                      <Check className="size-3.5" strokeWidth={2.5} />
-                    </span>
-                    <div>
-                      <p className="ds-label text-foreground">{expert.firstName} {expert.lastName}</p>
-                      <p className="ds-caption text-muted-foreground">Request sent via Direct Messaging</p>
-                    </div>
-                  </div>
-                ) : (
-                  <ExpertCard
-                    key={expert.id}
-                    expert={expert}
-                    score={score}
-                    answers={answers}
-                    onConnect={handleConnect}
-                  />
-                )
+                <ExpertCard
+                  key={expert.id}
+                  expert={expert}
+                  score={score}
+                  answers={answers}
+                  onConnect={handleConnect}
+                  sent={sent.has(expert.id)}
+                />
               ))}
             </div>
           </motion.div>

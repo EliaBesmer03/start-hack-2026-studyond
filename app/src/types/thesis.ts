@@ -49,4 +49,6 @@ export interface ThesisProfile {
   concern: string | null
   completedOnboarding: boolean
   answers: WizardAnswer[]
+  name: string | null
+  email: string | null
 }

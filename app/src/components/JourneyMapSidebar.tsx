@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Clock } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Clock, LogOut } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
 import type { ThesisStage } from '@/types/thesis'
@@ -18,7 +18,6 @@ export type FeatureId =
   | 'copilot-execution'
   | 'interview-partners'
   | 'thesis-twin'
-  | 'copilot-writing'
   | 'draft-reader'
   | 'thesis-alumni'
 
@@ -48,9 +47,8 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
     { id: 'thesis-twin',        label: 'Thesis Twin',         description: 'Peer accountability — one student, same stage' },
   ],
   'execution-writing': [
-    { id: 'copilot-writing', label: 'Writing Co-Pilot', description: 'Draft support, feedback integration' },
-    { id: 'draft-reader',    label: 'Draft Reader',     description: 'Request an expert to review your draft' },
-    { id: 'thesis-alumni',   label: 'Alumni Profile',   description: 'Leave feedback and be there for the next student' },
+    { id: 'draft-reader',  label: 'Draft Reader',  description: 'Request an expert to review your draft' },
+    { id: 'thesis-alumni', label: 'Alumni Profile', description: 'Leave feedback and be there for the next student' },
   ],
 }
 
@@ -73,7 +71,10 @@ interface JourneyMapSidebarProps {
 /* ── Component ─────────────────────────────────────────────────────── */
 
 export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: JourneyMapSidebarProps) {
-  const { profile } = useThesisStore()
+  const { profile, tasks } = useThesisStore()
+
+  const isFeatureDone = (featureId: FeatureId) =>
+    tasks.some((t) => t.featureId === featureId && t.status === 'done')
   const currentStage = profile.stage ?? 'orientation'
   const currentIndex = STAGES.findIndex((s) => s.id === currentStage)
 
@@ -152,25 +153,33 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
                   <div className="ml-[28px] border-l border-border">
                     {features.map((feat) => {
                       const isFeatureActive = activeFeature === feat.id
+                      const done = isFeatureDone(feat.id)
                       return (
                         <button
                           key={feat.id}
                           type="button"
                           onClick={() => onFeatureSelect(feat.id)}
-                          className={`flex w-full flex-col items-start gap-0.5 py-2 pl-4 pr-3 text-left transition-colors ${
+                          className={`flex w-full items-start gap-2 py-2 pl-4 pr-3 text-left transition-colors ${
                             isFeatureActive ? 'bg-secondary' : 'hover:bg-secondary/60'
                           }`}
                         >
-                          <span
-                            className={`ds-label leading-tight ${
-                              isFeatureActive ? 'text-foreground' : 'text-foreground/80'
-                            }`}
-                          >
-                            {feat.label}
-                          </span>
-                          <span className="ds-caption text-muted-foreground leading-tight">
-                            {feat.description}
-                          </span>
+                          <div className="min-w-0 flex-1">
+                            <span
+                              className={`ds-label block leading-tight ${
+                                done ? 'text-muted-foreground line-through' : isFeatureActive ? 'text-foreground' : 'text-foreground/80'
+                              }`}
+                            >
+                              {feat.label}
+                            </span>
+                            <span className="ds-caption text-muted-foreground leading-tight">
+                              {feat.description}
+                            </span>
+                          </div>
+                          {done && (
+                            <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground">
+                              <Check className="size-2.5 text-background" strokeWidth={2.5} />
+                            </span>
+                          )}
                         </button>
                       )
                     })}
@@ -182,16 +191,36 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
         })}
       </nav>
 
-      {/* Bottom: reset */}
-      <div className="border-t border-border px-4 py-3">
-        <button
-          type="button"
-          onClick={onReset}
-          className="ds-caption flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronRight className="size-3 rotate-180" />
-          Restart GPS
-        </button>
+      {/* Bottom: user identity card */}
+      <div className="border-t border-border p-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-secondary px-3 py-2.5">
+          {/* Avatar */}
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground ds-badge font-semibold text-background">
+            {profile.name
+              ? profile.name.split(' ').map((n) => n[0]).slice(0, 2).join('')
+              : '?'}
+          </div>
+
+          {/* Name + email */}
+          <div className="min-w-0 flex-1">
+            <p className="ds-label truncate text-foreground leading-tight">
+              {profile.name ?? 'Anonymous'}
+            </p>
+            <p className="ds-caption truncate text-muted-foreground leading-tight">
+              {profile.email ?? '—'}
+            </p>
+          </div>
+
+          {/* Reset */}
+          <button
+            type="button"
+            onClick={onReset}
+            title="Restart GPS"
+            className="shrink-0 text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+          >
+            <LogOut className="size-3.5" />
+          </button>
+        </div>
       </div>
     </aside>
   )

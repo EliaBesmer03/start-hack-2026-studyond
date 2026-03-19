@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bookmark, ChevronDown, ChevronUp, GraduationCap, Mail, MessageSquare, Search, Send, Users } from 'lucide-react'
 import { supervisors, students, projects, fieldName, byId, type Supervisor, type Student, type ThesisProject } from '@/data/mock'
+import { useThesisStore } from '@/stores/thesis-store'
 // @ts-ignore
 import _universities from '@mock/universities.json'
 const universities = _universities as { id: string; name: string; country: string }[]
@@ -244,6 +245,7 @@ function SupervisorCard({
 }
 
 export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
+  const { completeFeature } = useThesisStore()
   const [query, setQuery] = useState('')
   const [shortlisted, setShortlisted] = useState<Set<string>>(new Set())
   const [tab, setTab] = useState<'all' | 'shortlisted'>('all')
@@ -271,6 +273,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
   })
 
   const handleDraftEmail = (s: Supervisor) => {
+    completeFeature('supervisor-search')
     const prompt = `Help me write a cold outreach email to Professor ${s.lastName} at ${uniName(s.universityId)}. Their research interests are: ${s.researchInterests.slice(0, 3).join(', ')}. I want to ask if they'd be willing to supervise my thesis. Keep it concise, professional, and personalised.`
     onOpenCoPilot(prompt)
   }
@@ -279,8 +282,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
     <div className="mx-auto max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Topic & Supervisor</p>
-        <h2 className="ds-title-md mt-1 text-foreground">Find Supervisors</h2>
+        <h2 className="ds-title-md text-foreground">Find Supervisors</h2>
         <p className="ds-body mt-2 text-muted-foreground">
           Browse {supervisors.length} academic supervisors across Swiss universities. Shortlist the ones you like, then connect with students who have already worked with them.
         </p>

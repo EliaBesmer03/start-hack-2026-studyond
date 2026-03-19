@@ -459,7 +459,7 @@ function DoneScreen({ openToOutreach }: { openToOutreach: boolean }) {
 // ── Main component ────────────────────────────────────────────────────
 
 export function ThesisAlumni() {
-  const { profile } = useThesisStore()
+  const { profile, completeFeature } = useThesisStore()
   const supervisorName = (() => {
     const a = profile.answers.find((a) => a.questionIndex === 0)
     return a?.value ?? null
@@ -476,15 +476,17 @@ export function ThesisAlumni() {
     openToOutreach: true, topics: true, supervisors: true, companies: true, anonymous: false,
   })
 
-  const handleSubmit = () => setStep('done')
+  const handleSubmit = () => {
+    completeFeature('thesis-alumni')
+    setStep('done')
+  }
 
   return (
     <div className="mx-auto max-w-xl">
       {/* Header */}
       {step !== 'done' && (
         <div className="mb-8">
-          <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Writing & Finalization</p>
-          <h2 className="ds-title-md mt-1 text-foreground">Alumni Profile</h2>
+          <h2 className="ds-title-md text-foreground">Alumni Profile</h2>
           <p className="ds-body mt-2 text-muted-foreground">
             You made it. Share your experience and help the next student find their way{supervisorName ? ` — just like someone helped you` : ''}.
           </p>

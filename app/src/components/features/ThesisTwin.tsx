@@ -13,6 +13,7 @@ import {
   Target, Trophy, Users,
 } from 'lucide-react'
 import { students, fields, byId, type Student } from '@/data/mock'
+import { useThesisStore } from '@/stores/thesis-store'
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -447,14 +448,14 @@ function SharedSpace({ twin }: { twin: Student }) {
 type TwinPhase = 'opt-in' | 'proposal' | 'active'
 
 export function ThesisTwin() {
+  const { completeFeature } = useThesisStore()
   const [phase, setPhase] = useState<TwinPhase>('opt-in')
 
   return (
     <div>
       {/* Header */}
       <div className="mb-8">
-        <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Feature 2C</p>
-        <h2 className="ds-title-md mt-1 text-foreground">Thesis Twin</h2>
+        <h2 className="ds-title-md text-foreground">Thesis Twin</h2>
         {phase === 'opt-in' && (
           <p className="ds-body mt-2 text-muted-foreground">
             One peer. Same stage. Mutual accountability — without the noise.
@@ -472,7 +473,7 @@ export function ThesisTwin() {
           <motion.div key="proposal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <MatchProposalScreen
               twin={MY_TWIN}
-              onAccept={() => setPhase('active')}
+              onAccept={() => { completeFeature('thesis-twin'); setPhase('active') }}
               onDecline={() => setPhase('opt-in')}
             />
           </motion.div>

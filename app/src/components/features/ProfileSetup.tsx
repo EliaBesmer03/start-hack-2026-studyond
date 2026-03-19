@@ -5,8 +5,20 @@
  */
 
 import { useState } from 'react'
-import { Check, User } from 'lucide-react'
+import { Check, GraduationCap, User } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
+// @ts-ignore
+import _universities from '@mock/universities.json'
+
+const universities = _universities as { id: string; name: string; domains: string[] }[]
+
+function detectUniversity(email: string | null): string | null {
+  if (!email) return null
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return null
+  const match = universities.find((u) => u.domains.some((d) => domain === d || domain.endsWith(`.${d}`)))
+  return match?.name ?? null
+}
 
 const FIELD_OPTIONS = [
   'Business & Economics',
@@ -20,7 +32,9 @@ const FIELD_OPTIONS = [
 const DEGREE_OPTIONS = ['Bachelor (BSc / BA)', 'Master (MSc / MA)', 'PhD / Doctorate']
 
 export function ProfileSetup() {
-  const { thesisNotes, addThesisNote } = useThesisStore()
+  const { profile, thesisNotes, addThesisNote, completeFeature } = useThesisStore()
+  const detectedUniversity = detectUniversity(profile.email)
+
   const [field, setField] = useState('')
   const [degree, setDegree] = useState('')
   const [interest, setInterest] = useState('')
@@ -29,12 +43,14 @@ export function ProfileSetup() {
 
   const handleSave = () => {
     const notes: string[] = []
+    if (detectedUniversity) notes.push(`My university: ${detectedUniversity}`)
     if (field) notes.push(`My field: ${field}`)
     if (degree) notes.push(`My degree level: ${degree}`)
     if (interest.trim()) notes.push(`My research interest: ${interest.trim()}`)
     if (constraints.trim()) notes.push(`My constraints / situation: ${constraints.trim()}`)
 
     notes.forEach((n) => addThesisNote(n))
+    completeFeature('profile-setup')
     setSaved(true)
   }
 
@@ -86,14 +102,32 @@ export function ProfileSetup() {
         <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-secondary">
           <User className="size-5 text-foreground" />
         </div>
-        <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Orientation</p>
-        <h2 className="ds-title-md mt-1 text-foreground">Thesis Profile</h2>
+        <h2 className="ds-title-md text-foreground">Thesis Profile</h2>
         <p className="ds-body mt-2 text-muted-foreground">
           Tell us about your background. This gets saved to your Co-Pilot Notes so every conversation is tailored to you.
         </p>
       </div>
 
       <div className="flex flex-col gap-5">
+        {/* University — auto-detected from email */}
+        <div>
+          <label className="ds-label mb-2 block text-foreground">University</label>
+          {detectedUniversity ? (
+            <div className="flex items-center gap-2.5 rounded-xl border border-border bg-secondary/50 px-4 py-3">
+              <GraduationCap className="size-4 shrink-0 text-muted-foreground" />
+              <span className="ds-body text-foreground">{detectedUniversity}</span>
+              <span className="ml-auto ds-caption text-muted-foreground/60">detected from email</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5 rounded-xl border border-dashed border-border px-4 py-3">
+              <GraduationCap className="size-4 shrink-0 text-muted-foreground/40" />
+              <span className="ds-body text-muted-foreground/50">
+                {profile.email ? `Could not detect university from ${profile.email.split('@')[1]}` : 'No email on file'}
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Field */}
         <div>
           <label className="ds-label mb-2 block text-foreground">Research field</label>

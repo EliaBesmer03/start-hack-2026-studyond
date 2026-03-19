@@ -13,6 +13,7 @@ import {
   FileText, Send, Sparkles, Star,
 } from 'lucide-react'
 import { experts, companies, fields, byId, type Expert } from '@/data/mock'
+import { useThesisStore } from '@/stores/thesis-store'
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -293,6 +294,7 @@ function ReaderCard({
 type Phase = 'form' | 'copilot' | 'results'
 
 export function DraftReader() {
+  const { completeFeature } = useThesisStore()
   const [phase, setPhase] = useState<Phase>('form')
   const [form, setForm] = useState<RequestForm>({
     chapter: '',
@@ -313,14 +315,16 @@ export function DraftReader() {
     setPhase('copilot')
   }
 
-  const handleRequest = (id: string) => setRequested((prev) => new Set([...prev, id]))
+  const handleRequest = (id: string) => {
+    completeFeature('draft-reader')
+    setRequested((prev) => new Set([...prev, id]))
+  }
 
   return (
     <div className="mx-auto max-w-xl">
       {/* Header */}
       <div className="mb-8">
-        <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Feature 2D</p>
-        <h2 className="ds-title-md mt-1 text-foreground">Draft Reader</h2>
+        <h2 className="ds-title-md text-foreground">Draft Reader</h2>
         <p className="ds-body mt-2 text-muted-foreground">
           Get structured feedback on a chapter from an expert or alumni who has read hundreds
           of theses in your field.

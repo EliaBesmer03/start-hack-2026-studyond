@@ -1,20 +1,18 @@
 /**
- * Feature 2A — Smart Match Engine
- *
- * Bundled match cards (Topic + Supervisor + Company) with match score,
- * "Why this match?" explanation, and Accept / Skip / Save actions.
- * Pre-loaded with 4 real matches from mock data.
+ * Smart Match — bundled Topic + Supervisor + Company match cards.
+ * Topics favourited in TopicExplore appear first; remaining slots filled by AI.
+ * Accepts also triggers supervisor matching on the same screen.
  */
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Building2, GraduationCap, Check, X, Bookmark,
-  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles,
+  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Search,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
-  topics, supervisors, companies, experts,
+  topics, supervisors, companies, experts, fields,
   fieldName, companyName,
   type Topic, type Supervisor, type Company,
 } from '@/data/mock'
@@ -27,20 +25,21 @@ interface MatchCard {
   topic: Topic
   supervisor: Supervisor | null
   company: Company | null
-  score: number          // 0–100
-  reasons: string[]      // 3 bullet "Why this match?" explanations
+  score: number
+  reasons: string[]
+  fromFavourite?: boolean
 }
 
 type CardAction = 'accepted' | 'skipped' | 'saved'
 
-// ── Curated match cards from real mock data ───────────────────────────
+// ── Base curated match cards ──────────────────────────────────────────
 
-const MATCH_CARDS: MatchCard[] = [
+const BASE_MATCH_CARDS: MatchCard[] = [
   {
     id: 'm1',
     topic: topics.find((t) => t.id === 'topic-01')!,
-    supervisor: supervisors.find((s) => s.id === 'supervisor-03')!,    // ETH ML supervisor
-    company: companies.find((c) => c.id === 'company-01')!,            // Nestlé
+    supervisor: supervisors.find((s) => s.id === 'supervisor-03')!,
+    company: companies.find((c) => c.id === 'company-01')!,
     score: 91,
     reasons: [
       'Your Python & ML skills match the forecasting stack Nestlé uses.',
@@ -52,7 +51,7 @@ const MATCH_CARDS: MatchCard[] = [
     id: 'm2',
     topic: topics.find((t) => t.id === 'topic-05')!,
     supervisor: supervisors.find((s) => s.id === 'supervisor-01')!,
-    company: companies.find((c) => c.id === 'company-03')!,            // ABB
+    company: companies.find((c) => c.id === 'company-03')!,
     score: 84,
     reasons: [
       "Control systems and embedded work aligns with ABB's robotics R&D track.",
@@ -64,7 +63,7 @@ const MATCH_CARDS: MatchCard[] = [
     id: 'm3',
     topic: topics.find((t) => t.id === 'topic-09')!,
     supervisor: supervisors.find((s) => s.id === 'supervisor-05')!,
-    company: companies.find((c) => c.id === 'company-05')!,            // SBB
+    company: companies.find((c) => c.id === 'company-05')!,
     score: 78,
     reasons: [
       "Your interest in sustainability and operations fits SBB's rail infrastructure focus.",
@@ -76,7 +75,7 @@ const MATCH_CARDS: MatchCard[] = [
     id: 'm4',
     topic: topics.find((t) => t.id === 'topic-13')!,
     supervisor: supervisors.find((s) => s.id === 'supervisor-07')!,
-    company: companies.find((c) => c.id === 'company-07')!,            // Zurich Insurance
+    company: companies.find((c) => c.id === 'company-07')!,
     score: 72,
     reasons: [
       'Risk modelling with ML is a growing demand at Swiss insurers.',
@@ -86,7 +85,7 @@ const MATCH_CARDS: MatchCard[] = [
   },
 ]
 
-// ── Score pill ────────────────────────────────────────────────────────
+// ── Score badge ───────────────────────────────────────────────────────
 
 function ScoreBadge({ score }: { score: number }) {
   const colour =
@@ -106,10 +105,10 @@ function ScoreBadge({ score }: { score: number }) {
 function EmploymentBadge({ topic }: { topic: Topic }) {
   if (topic.employment === 'no') return null
   const label =
-    topic.employmentType === 'internship'      ? 'Internship' :
-    topic.employmentType === 'working_student' ? 'Working student' :
-    topic.employmentType === 'graduate_program'? 'Graduate programme' :
-    topic.employmentType === 'direct_entry'    ? 'Direct entry' : 'Employment'
+    topic.employmentType === 'internship'       ? 'Internship' :
+    topic.employmentType === 'working_student'  ? 'Working student' :
+    topic.employmentType === 'graduate_program' ? 'Graduate programme' :
+    topic.employmentType === 'direct_entry'     ? 'Direct entry' : 'Employment'
   return (
     <span className="ds-caption flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-medium text-foreground">
       <BadgeCheck className="size-3" />
@@ -118,7 +117,7 @@ function EmploymentBadge({ topic }: { topic: Topic }) {
   )
 }
 
-// ── Individual match card ──────────────────────────────────────────────
+// ── Individual match card ─────────────────────────────────────────────
 
 function MatchCardView({
   card,
@@ -140,11 +139,19 @@ function MatchCardView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16, scale: 0.97 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="overflow-hidden rounded-2xl border border-border bg-background hover:shadow-md transition-shadow duration-150"
+      className="overflow-hidden rounded-2xl border border-border bg-background transition-shadow duration-150 hover:shadow-md"
     >
       {/* Score bar */}
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
-        <ScoreBadge score={score} />
+        <div className="flex items-center gap-2">
+          <ScoreBadge score={score} />
+          {card.fromFavourite && (
+            <span className="ds-caption flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+              <Bookmark className="size-3 fill-current" />
+              Your pick
+            </span>
+          )}
+        </div>
         <div className="flex gap-1.5">
           {topic.fieldIds.slice(0, 2).map((fid) => (
             <Badge key={fid} variant="secondary" className="rounded-full ds-caption">
@@ -155,7 +162,7 @@ function MatchCardView({
       </div>
 
       {/* Topic */}
-      <div className="px-5 pt-5 pb-4">
+      <div className="px-5 pb-4 pt-5">
         <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.16em] text-muted-foreground">
           <GraduationCap className="size-3.5" />
           Topic
@@ -179,7 +186,6 @@ function MatchCardView({
 
       {/* Supervisor + Company row */}
       <div className="grid grid-cols-2 gap-px border-t border-border bg-border">
-        {/* Supervisor */}
         <div className="bg-background px-4 py-3">
           <p className="ds-caption mb-1.5 flex items-center gap-1 uppercase tracking-[0.14em] text-muted-foreground">
             <GraduationCap className="size-3" />
@@ -199,7 +205,6 @@ function MatchCardView({
           )}
         </div>
 
-        {/* Company */}
         <div className="bg-background px-4 py-3">
           <p className="ds-caption mb-1.5 flex items-center gap-1 uppercase tracking-[0.14em] text-muted-foreground">
             <Building2 className="size-3" />
@@ -276,7 +281,7 @@ function MatchCardView({
         <button
           type="button"
           onClick={() => onAction(card.id, 'skipped')}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+          className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
           title="Skip"
         >
           <X className="size-4" />
@@ -284,7 +289,7 @@ function MatchCardView({
         <button
           type="button"
           onClick={() => onAction(card.id, 'saved')}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+          className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
           title="Save for later"
         >
           <Bookmark className="size-4" />
@@ -292,7 +297,7 @@ function MatchCardView({
         <button
           type="button"
           onClick={() => onAction(card.id, 'accepted')}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-all hover:bg-foreground/80"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80"
         >
           <Check className="size-4" />
           Accept match
@@ -302,7 +307,7 @@ function MatchCardView({
   )
 }
 
-// ── Toast for accepted match ──────────────────────────────────────────
+// ── Accepted toast ────────────────────────────────────────────────────
 
 function AcceptedToast({ topic, supervisor, company }: { topic: Topic; supervisor: Supervisor | null; company: Company | null }) {
   return (
@@ -329,7 +334,7 @@ function AcceptedToast({ topic, supervisor, company }: { topic: Topic; superviso
             {supervisor && <span className="font-medium text-foreground">{supervisor.lastName}</span>}
             {supervisor && company && ' and '}
             {company && <span className="font-medium text-foreground">{company.name}</span>}
-            {' '}will receive an intro request. A shared context summary will be sent to all parties.
+            {' '}will receive an intro request.
           </p>
         </div>
       )}
@@ -337,32 +342,112 @@ function AcceptedToast({ topic, supervisor, company }: { topic: Topic; superviso
   )
 }
 
-// ── Field mapping from GPS answers ───────────────────────────────────
+// ── Inline supervisor search ──────────────────────────────────────────
 
-const FIELD_LABEL: Record<string, string> = {
-  business: 'Business & Economics',
-  cs: 'Computer Science',
-  social: 'Social Sciences',
-  science: 'Natural Sciences',
+function SupervisorSearchPanel() {
+  const [query, setQuery] = useState('')
+  const filtered = supervisors.filter((s) => {
+    const q = query.toLowerCase()
+    return (
+      !q ||
+      s.firstName.toLowerCase().includes(q) ||
+      s.lastName.toLowerCase().includes(q) ||
+      s.researchInterests.some((r) => r.toLowerCase().includes(q))
+    )
+  }).slice(0, 6)
+
+  return (
+    <div className="mt-8">
+      <div className="mb-4 flex items-center gap-2 border-t border-border pt-8">
+        <GraduationCap className="size-4 text-muted-foreground" />
+        <h3 className="ds-title-sm text-foreground">Find a supervisor directly</h3>
+      </div>
+      <p className="ds-small mb-4 text-muted-foreground">
+        Can't find a match you like? Browse supervisors and shortlist the ones aligned with your research direction.
+      </p>
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name or research interest…"
+          className="ds-body w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+        />
+      </div>
+      <div className="space-y-2">
+        {filtered.map((sup) => (
+          <div key={sup.id} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-foreground/20">
+            <div className="min-w-0">
+              <p className="ds-label text-foreground">{sup.title} {sup.firstName} {sup.lastName}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {sup.researchInterests.slice(0, 3).map((r, i) => (
+                  <span key={i} className="ds-caption rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{r}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-1">
+              {sup.fieldIds.slice(0, 2).map((fid) => {
+                const f = fields.find((fi) => fi.id === fid)
+                return f ? (
+                  <span key={fid} className="ds-caption rounded-full border border-border px-2 py-0.5 text-muted-foreground">{f.name}</span>
+                ) : null
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ── Main component ────────────────────────────────────────────────────
 
 export function SmartMatch() {
-  const { profile } = useThesisStore()
-  const fieldAnswer = profile.answers.find((a) => a.questionIndex === 1)?.value
-  const fieldLabel = fieldAnswer ? FIELD_LABEL[fieldAnswer] : null
+  const { profile, completeFeature, favouriteTopicIds, addAcceptedExpert } = useThesisStore()
 
-  // Sort cards by profile relevance: CS/ML fields get higher-scored cards first
-  const sortedCards = useMemo(() => {
-    if (!fieldAnswer || fieldAnswer === 'not-sure') return MATCH_CARDS
-    // CS → ML/AI topics first (m1, m2); Business → m3, m4 first
-    if (fieldAnswer === 'cs') return [...MATCH_CARDS].sort((a, b) => b.score - a.score)
-    if (fieldAnswer === 'business') return [...MATCH_CARDS].sort((a, b) => a.score - b.score)
-    return MATCH_CARDS
-  }, [fieldAnswer])
+  // Build match cards: favourited topics first (with their matched supervisor/company),
+  // remaining slots filled from base cards not already covered, always sorted by score desc
+  const cards = useMemo<MatchCard[]>(() => {
+    const favouriteCards: MatchCard[] = favouriteTopicIds.flatMap((topicId, i) => {
+      const topic = topics.find((t) => t.id === topicId)
+      if (!topic) return []
+      // Try to find a base card for this topic
+      const base = BASE_MATCH_CARDS.find((c) => c.topic.id === topicId)
+      if (base) return [{ ...base, fromFavourite: true }]
+      // Build a synthetic card
+      const supervisor = topic.supervisorIds[0] ? supervisors.find((s) => s.id === topic.supervisorIds[0]) ?? null : null
+      const company = topic.companyId ? companies.find((c) => c.id === topic.companyId) ?? null : null
+      return [{
+        id: `fav-${topicId}`,
+        topic,
+        supervisor,
+        company,
+        score: 88 - i * 4,
+        fromFavourite: true,
+        reasons: [
+          'You bookmarked this topic in your exploration phase.',
+          supervisor ? `${supervisor.title} ${supervisor.lastName} researches directly aligned topics.` : 'Supervisor TBD based on your research direction.',
+          company ? `${company.name} is looking for thesis students in this area.` : 'Academic topic — strong for PhD pathways.',
+        ],
+      }]
+    })
 
-  const [cards] = useState(sortedCards)
+    // Fill remaining with base cards not already included, sorted desc
+    const favouritedTopicIds = new Set(favouriteTopicIds)
+    const remaining = BASE_MATCH_CARDS
+      .filter((c) => !favouritedTopicIds.has(c.topic.id))
+      .sort((a, b) => b.score - a.score)
+
+    // Merge: favourites first (sorted by score), then remaining
+    const merged = [
+      ...favouriteCards.sort((a, b) => b.score - a.score),
+      ...remaining,
+    ]
+
+    return merged
+  }, [favouriteTopicIds])
+
   const [actions, setActions] = useState<Record<string, CardAction>>({})
   const [saved, setSaved] = useState<MatchCard[]>([])
   const [tab, setTab] = useState<'matches' | 'saved'>('matches')
@@ -373,26 +458,43 @@ export function SmartMatch() {
       const card = cards.find((c) => c.id === id)
       if (card) setSaved((prev) => [...prev, card])
     }
+    if (action === 'accepted') {
+      const card = cards.find((c) => c.id === id)
+      // Propagate expert IDs to InterviewPartners
+      if (card) {
+        card.topic.expertIds.forEach((eid) => addAcceptedExpert(eid))
+      }
+      completeFeature('smart-match')
+      completeFeature('topic-match')
+    }
   }
 
   const activeCards = cards.filter((c) => !actions[c.id] || actions[c.id] === 'saved')
   const dismissed = cards.filter((c) => actions[c.id] === 'skipped' || actions[c.id] === 'accepted')
 
+  const fieldAnswer = profile.answers.find((a) => a.questionIndex === 1)?.value
+  const FIELD_LABEL: Record<string, string> = {
+    business: 'Business & Economics',
+    cs: 'Computer Science',
+    social: 'Social Sciences',
+    science: 'Natural Sciences',
+  }
+  const fieldLabel = fieldAnswer ? FIELD_LABEL[fieldAnswer] : null
+
   return (
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="mb-6">
-        <p className="ds-label uppercase tracking-[0.18em] text-muted-foreground">Feature 2A</p>
-        <h2 className="ds-title-md mt-1 text-foreground">Smart Match</h2>
+        <h2 className="ds-title-md text-foreground">Smart Match</h2>
         <p className="ds-body mt-2 text-muted-foreground">
           Bundled matches — topic, supervisor, and company selected together based on your profile.
-          Accept to trigger a three-way intro.
+          Accept to trigger a three-way intro. Your bookmarked topics appear first.
         </p>
         {fieldLabel && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2">
             <Sparkles className="size-3.5 shrink-0 text-muted-foreground" />
             <p className="ds-caption text-muted-foreground">
-              Matches ordered for your <span className="font-medium text-foreground">{fieldLabel}</span> profile
+              Personalised for your <span className="font-medium text-foreground">{fieldLabel}</span> profile
             </p>
           </div>
         )}
@@ -405,7 +507,7 @@ export function SmartMatch() {
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-lg py-2 ds-label capitalize transition-all ${
+            className={`flex-1 rounded-lg py-2 ds-label capitalize transition-colors ${
               tab === t ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -420,7 +522,9 @@ export function SmartMatch() {
             {activeCards.map((card) => (
               <div key={card.id}>
                 <MatchCardView card={card} onAction={handleAction} />
-                {actions[card.id] === 'accepted' && <AcceptedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />}
+                {actions[card.id] === 'accepted' && (
+                  <AcceptedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />
+                )}
               </div>
             ))}
           </AnimatePresence>
@@ -433,6 +537,8 @@ export function SmartMatch() {
               </p>
             </div>
           )}
+
+          <SupervisorSearchPanel />
         </div>
       )}
 

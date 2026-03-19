@@ -4,15 +4,23 @@
  */
 
 import { Sparkles, ArrowRight } from 'lucide-react'
+import { useThesisStore } from '@/stores/thesis-store'
 
 interface CoPilotFeatureProps {
   title: string
   description: string
   starters: string[]
+  featureId: string
   onOpenCoPilot: (prompt?: string) => void
 }
 
-export function CoPilotFeature({ title, description, starters, onOpenCoPilot }: CoPilotFeatureProps) {
+export function CoPilotFeature({ title, description, starters, featureId, onOpenCoPilot }: CoPilotFeatureProps) {
+  const { completeFeature } = useThesisStore()
+
+  const handleOpen = (prompt?: string) => {
+    completeFeature(featureId)
+    onOpenCoPilot(prompt)
+  }
   return (
     <div className="mx-auto max-w-xl">
       {/* Header */}
@@ -32,7 +40,7 @@ export function CoPilotFeature({ title, description, starters, onOpenCoPilot }: 
             <button
               key={prompt}
               type="button"
-              onClick={() => onOpenCoPilot(prompt)}
+              onClick={() => handleOpen(prompt)}
               className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3 text-left transition-all hover:border-foreground/30 hover:shadow-sm"
             >
               <span className="ds-body text-foreground">{prompt}</span>
@@ -45,7 +53,7 @@ export function CoPilotFeature({ title, description, starters, onOpenCoPilot }: 
       {/* Open Co-Pilot CTA */}
       <button
         type="button"
-        onClick={() => onOpenCoPilot()}
+        onClick={() => handleOpen()}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 ds-label text-background transition-all hover:bg-foreground/80"
       >
         <Sparkles className="size-4" />

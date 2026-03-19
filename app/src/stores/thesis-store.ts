@@ -169,35 +169,11 @@ const DEFAULT_TASKS: Task[] = [
 
   // ── Writing & Finalization ────────────────────────────────────────
   {
-    id: 'w1',
-    stageId: 'execution-writing',
-    title: 'Write Introduction and Conclusion',
-    description: 'Frame your thesis with clarity — Co-Pilot reviews scope and argument.',
-    featureId: 'copilot-writing',
-    status: 'ready',
-  },
-  {
-    id: 'w2',
-    stageId: 'execution-writing',
-    title: 'Incorporate Supervisor Feedback',
-    description: 'Systematically address all comments before your next check-in.',
-    featureId: 'copilot-writing',
-    status: 'ready',
-  },
-  {
     id: 'w3',
     stageId: 'execution-writing',
     title: 'Request a Draft Reader',
     description: 'Get matched with an expert or alumni who reviews a chapter and gives feedback.',
     featureId: 'draft-reader',
-    status: 'ready',
-  },
-  {
-    id: 'w4',
-    stageId: 'execution-writing',
-    title: 'Submit Final Thesis',
-    description: 'Check formatting requirements and submit before your official deadline.',
-    featureId: 'copilot-writing',
     status: 'ready',
   },
   {
@@ -217,12 +193,16 @@ interface ThesisState {
   thesisNotes: string[]
   universityGuidelines: string
   celebrateStage: ThesisStage | null
+  favouriteTopicIds: string[]       // up to 3 topics bookmarked in TopicExplore
+  acceptedExpertIds: string[]       // experts matched/accepted in SmartMatch
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
   addAnswer: (answer: WizardAnswer) => void
+  setIdentity: (name: string, email: string) => void
   completeOnboarding: () => void
   resetProfile: () => void
+  completeFeature: (featureId: string) => void
   updateTaskStatus: (taskId: string, status: TaskStatus) => void
   dismissNudge: (taskId: string) => void
   saveChatMessages: (msgs: Message[]) => void
@@ -230,6 +210,8 @@ interface ThesisState {
   removeThesisNote: (index: number) => void
   setUniversityGuidelines: (text: string) => void
   clearCelebration: () => void
+  toggleFavouriteTopic: (topicId: string) => void
+  addAcceptedExpert: (expertId: string) => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -237,6 +219,8 @@ const initialProfile: ThesisProfile = {
   concern: null,
   completedOnboarding: false,
   answers: [],
+  name: null,
+  email: null,
 }
 
 export const useThesisStore = create<ThesisState>()(
@@ -248,6 +232,8 @@ export const useThesisStore = create<ThesisState>()(
       thesisNotes: [],
       universityGuidelines: '',
       celebrateStage: null,
+      favouriteTopicIds: [],
+      acceptedExpertIds: [],
 
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
@@ -265,6 +251,8 @@ export const useThesisStore = create<ThesisState>()(
             ],
           },
         })),
+      setIdentity: (name, email) =>
+        set((s) => ({ profile: { ...s.profile, name, email } })),
       completeOnboarding: () =>
         set((s) => ({ profile: { ...s.profile, completedOnboarding: true } })),
       resetProfile: () =>
@@ -275,6 +263,23 @@ export const useThesisStore = create<ThesisState>()(
           thesisNotes: [],
           universityGuidelines: '',
           celebrateStage: null,
+          favouriteTopicIds: [],
+          acceptedExpertIds: [],
+        }),
+      completeFeature: (featureId) =>
+        set((s) => {
+          const updatedTasks = s.tasks.map((t) =>
+            t.featureId === featureId && t.status !== 'done' ? { ...t, status: 'done' as TaskStatus } : t,
+          )
+          const currentStage = s.profile.stage ?? 'orientation'
+          const stageTasks = updatedTasks.filter((t) => t.stageId === currentStage)
+          const allDone = stageTasks.length > 0 && stageTasks.every((t) => t.status === 'done')
+          const next = allDone ? nextStage(currentStage) : null
+          return {
+            tasks: updatedTasks,
+            profile: next ? { ...s.profile, stage: next } : s.profile,
+            celebrateStage: next ? currentStage : s.celebrateStage,
+          }
         }),
       updateTaskStatus: (taskId, status) =>
         set((s) => {
@@ -303,6 +308,21 @@ export const useThesisStore = create<ThesisState>()(
         set({ universityGuidelines: text }),
       clearCelebration: () =>
         set({ celebrateStage: null }),
+      toggleFavouriteTopic: (topicId) =>
+        set((s) => {
+          const favs = s.favouriteTopicIds
+          if (favs.includes(topicId)) {
+            return { favouriteTopicIds: favs.filter((id) => id !== topicId) }
+          }
+          if (favs.length >= 3) return s
+          return { favouriteTopicIds: [...favs, topicId] }
+        }),
+      addAcceptedExpert: (expertId) =>
+        set((s) => ({
+          acceptedExpertIds: s.acceptedExpertIds.includes(expertId)
+            ? s.acceptedExpertIds
+            : [...s.acceptedExpertIds, expertId],
+        })),
     }),
     { name: 'studyond-thesis-v2' },
   ),

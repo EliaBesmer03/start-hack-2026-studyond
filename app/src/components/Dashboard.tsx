@@ -201,7 +201,6 @@ const FEATURE_LABELS: Record<FeatureId, string> = {
   'methodology':       'Methodology Guide',
   'copilot-execution': 'Execution Co-Pilot',
   'interview-partners':'Interview Partners',
-  'copilot-writing':   'Writing Co-Pilot',
   'draft-reader':      'Draft Reader',
   'thesis-twin':       'Thesis Twin',
   'thesis-alumni':     'Alumni Profile',
@@ -254,15 +253,6 @@ function FeaturePane({
         "I'm stuck on my data analysis — where do I start?",
       ],
     },
-    'copilot-writing': {
-      title: 'Writing Co-Pilot',
-      description: 'Structure feedback, introduction and conclusion review, supervisor feedback integration, and submission prep.',
-      starters: [
-        'Is my introduction too broad?',
-        'How do I integrate conflicting supervisor feedback?',
-        'What are typical formatting requirements for a Master thesis?',
-      ],
-    },
   }
 
   const meta = coPilotFeatures[featureId]
@@ -272,6 +262,7 @@ function FeaturePane({
         title={meta.title}
         description={meta.description}
         starters={meta.starters}
+        featureId={featureId}
         onOpenCoPilot={onOpenCoPilot}
       />
     )
