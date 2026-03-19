@@ -331,7 +331,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
       initial={{ x: '100%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '100%', opacity: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className="flex h-full w-[380px] shrink-0 flex-col border-l border-border bg-background"
     >
       {/* Header */}
@@ -422,7 +422,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                   <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground">
                     <Bot className="size-3 text-background" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm bg-secondary px-3.5 py-2.5">
+                  <div className="rounded-xl rounded-tl-sm bg-secondary px-3.5 py-2.5">
                     <p className="ds-body text-foreground leading-relaxed">
                       Hi! I'm <span className="font-medium">{botName}</span>, your {stageSubtitle} Co-Pilot. I have access to
                       topics, supervisors, and partner companies.
@@ -451,7 +451,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                       key={s}
                       type="button"
                       onClick={() => sendMessage(s)}
-                      className="ds-caption w-fit rounded-xl border border-border px-3 py-2 text-left text-muted-foreground transition-all hover:border-foreground/30 hover:bg-secondary hover:text-foreground"
+                      className="ds-caption w-fit rounded-full border border-border px-3 py-2 text-left text-muted-foreground transition-all hover:border-foreground/30 hover:bg-secondary hover:text-foreground"
                     >
                       {s}
                     </button>
@@ -471,7 +471,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
+                  className={`max-w-[85%] rounded-xl px-3.5 py-2.5 ${
                     msg.role === 'user'
                       ? 'rounded-tr-sm bg-foreground text-background'
                       : 'rounded-tl-sm bg-secondary text-foreground'
@@ -490,7 +490,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                             h1: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
                             h2: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
                             h3: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
-                            code: ({ children }) => <code className="rounded bg-background/50 px-1 py-0.5 text-[0.85em]">{children}</code>,
+                            code: ({ children }) => <code className="rounded bg-background/50 px-1 py-0.5 ds-caption">{children}</code>,
                             a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline">{children}</a>,
                           }}
                         >
@@ -543,7 +543,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             <button
               type="submit"
               disabled={!input.trim() || streaming}
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-foreground text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
               aria-label="Send"
             >
               {streaming ? (
@@ -611,7 +611,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
               type="button"
               onClick={handleAddNote}
               disabled={!noteInput.trim()}
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-foreground text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
               aria-label="Add note"
             >
               <Plus className="size-3.5" />

@@ -170,7 +170,7 @@ function SupervisorDrawer({
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
-        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         className="fixed right-0 top-0 z-50 flex h-full w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl"
       >
         {/* Header */}
@@ -383,7 +383,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Find Supervisors</h2>
@@ -430,16 +430,16 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
 
       {/* Grid */}
       {tab === 'shortlisted' && shortlisted.size === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <p className="ds-small text-muted-foreground/60">No supervisors shortlisted yet.</p>
           <p className="ds-caption mt-1 text-muted-foreground/40">Bookmark supervisors from the All tab to shortlist them.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <p className="ds-small text-muted-foreground/60">No supervisors match your search.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid-2-col">
           {filtered.slice(0, 16).map((s) => (
             <SupervisorCard
               key={s.id}

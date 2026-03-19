@@ -96,7 +96,7 @@ function ExpertDrawer({
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
-        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         className="fixed right-0 top-0 z-50 flex h-full w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl"
       >
         {/* Header */}

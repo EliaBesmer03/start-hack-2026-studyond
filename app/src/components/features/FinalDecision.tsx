@@ -86,7 +86,7 @@ export function FinalDecision() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-2xl border border-foreground/20 bg-background"
+          className="overflow-hidden rounded-xl border border-foreground/20 bg-background"
         >
           <div className="flex items-center gap-3 border-b border-border bg-foreground px-5 py-4">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-background text-foreground">
@@ -167,7 +167,7 @@ export function FinalDecision() {
               <button
                 type="button"
                 onClick={() => setIntroSent(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 ds-label text-background transition-colors hover:bg-foreground/80"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-3 ds-label text-background transition-colors hover:bg-foreground/80"
               >
                 <Send className="size-4" />
                 Request intro to supervisor{company ? ' & company' : ''}
@@ -218,7 +218,7 @@ export function FinalDecision() {
 
       <div className="space-y-4">
         {/* Step 1: Topic */}
-        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
           <button
             type="button"
             onClick={() => setTopicOpen((o) => !o)}
@@ -281,7 +281,7 @@ export function FinalDecision() {
         </div>
 
         {/* Step 2: Supervisor */}
-        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
           <button
             type="button"
             onClick={() => setSupervisorOpen((o) => !o)}
@@ -346,7 +346,7 @@ export function FinalDecision() {
         </div>
 
         {/* Step 3: Company (optional) */}
-        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
               <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ds-badge font-semibold ${selectedCompanyId ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground'}`}>
@@ -397,7 +397,7 @@ export function FinalDecision() {
           type="button"
           onClick={handleConfirm}
           disabled={!canConfirm}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground px-5 py-4 ds-label text-background transition-colors hover:bg-foreground/80 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-4 ds-label text-background transition-colors hover:bg-foreground/80 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Check className="size-4" />
           Confirm my decision

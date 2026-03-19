@@ -172,7 +172,7 @@ function TopicDrawer({
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
-        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         className="fixed right-0 top-0 z-50 flex h-full w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl"
       >
         {/* Header */}
@@ -369,7 +369,7 @@ function TopicDrawer({
           <button
             type="button"
             onClick={() => onAsk(topic)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80"
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ai px-4 py-2.5 ds-label text-background transition-all hover:opacity-90"
           >
             Ask Co-Pilot about this →
           </button>
@@ -409,7 +409,7 @@ export function TopicExplore({ onOpenCoPilot }: TopicExploreProps) {
   const canFavourite = favouriteTopicIds.length < 3
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto w-full ds-layout-narrow">
       {/* Header */}
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Explore Topics</h2>
@@ -512,11 +512,11 @@ export function TopicExplore({ onOpenCoPilot }: TopicExploreProps) {
 
       {/* Topic grid */}
       {filteredTopics.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
           <p className="ds-small text-muted-foreground/60">No topics match your filter.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid-2-col">
           {filteredTopics.slice(0, 20).map((t) => (
             <TopicCard
               key={t.id}

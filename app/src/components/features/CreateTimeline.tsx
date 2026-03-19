@@ -351,7 +351,7 @@ export function CreateTimeline() {
       </div>
 
       {/* Palette */}
-      <div data-tutorial="timeline-palette" className="mb-5 rounded-2xl border border-border bg-background p-4">
+      <div data-tutorial="timeline-palette" className="mb-5 rounded-xl border border-border bg-background p-4">
         <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
           <Calendar className="size-3" />
           Add elements — click to append to the right of that row
@@ -376,7 +376,7 @@ export function CreateTimeline() {
       </div>
 
       {/* Gantt grid */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-background" ref={gridRef}>
+      <div className="overflow-hidden rounded-xl border border-border bg-background" ref={gridRef}>
         {/* Week header row */}
         <div className="flex border-b border-border bg-secondary/50">
           {/* Label column header */}

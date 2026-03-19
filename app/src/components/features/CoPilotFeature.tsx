@@ -30,7 +30,7 @@ export function CoPilotFeature({ title, description, starters, featureId, onOpen
     <div className="mx-auto max-w-xl">
       {/* Header */}
       <div className="mb-8">
-        <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-ai">
+        <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-ai">
           <Sparkles className="size-5 text-background" />
         </div>
         <h2 className="ds-title-md text-foreground">{title}</h2>
@@ -59,7 +59,7 @@ export function CoPilotFeature({ title, description, starters, featureId, onOpen
       <button
         type="button"
         onClick={() => onOpenCoPilot()}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
       >
         <Sparkles className="size-4" />
         Open Co-Pilot
@@ -78,7 +78,7 @@ export function CoPilotFeature({ title, description, starters, featureId, onOpen
           <button
             type="button"
             onClick={handleMarkDone}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
           >
             <Check className="size-4" />
             Mark this step as done

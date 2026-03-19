@@ -162,8 +162,8 @@ function MatchCardView({
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16, scale: 0.97 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="overflow-hidden rounded-2xl border border-border bg-background transition-shadow duration-150 hover:shadow-md"
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="overflow-hidden rounded-xl border border-border bg-background transition-shadow duration-150 hover:shadow-md"
     >
       {/* Score bar */}
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -533,7 +533,7 @@ export function SmartMatch() {
           )}
 
           {activeCards.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+            <div className="rounded-xl border border-dashed border-border py-16 text-center">
               <p className="ds-title-sm text-muted-foreground">All caught up</p>
               <p className="ds-small mt-1 text-muted-foreground/60">
                 {dismissed.length} matches reviewed · check back tomorrow for new ones.
@@ -546,7 +546,7 @@ export function SmartMatch() {
       {tab === 'shortlisted' && (
         <div className="space-y-4">
           {shortlistedCards.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+            <div className="rounded-xl border border-dashed border-border py-16 text-center">
               <p className="ds-small text-muted-foreground/60">No matches shortlisted yet.</p>
               <p className="ds-caption mt-1 text-muted-foreground/40">
                 Click "Shortlist" on a match to save it here for Final Decision.

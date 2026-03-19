@@ -59,7 +59,7 @@ export function ProfileSetup() {
   if (saved) {
     return (
       <div className="mx-auto max-w-xl">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-secondary/30 py-16 text-center">
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-secondary/30 py-16 text-center">
           <div className="flex size-12 items-center justify-center rounded-full bg-foreground">
             <Check className="size-5 text-background" strokeWidth={2.5} />
           </div>
@@ -72,7 +72,7 @@ export function ProfileSetup() {
           <button
             type="button"
             onClick={() => setSaved(false)}
-            className="ds-caption rounded-xl border border-border px-4 py-2 text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+            className="ds-caption rounded-full border border-border px-4 py-2 text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
           >
             Edit profile
           </button>
@@ -202,7 +202,7 @@ export function ProfileSetup() {
           type="button"
           onClick={handleSave}
           disabled={!hasInput}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 ds-label text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90 disabled:opacity-40"
         >
           Save to Co-Pilot
         </button>

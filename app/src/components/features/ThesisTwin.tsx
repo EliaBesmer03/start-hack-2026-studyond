@@ -145,7 +145,7 @@ function MatchProposalScreen({
     >
       <p className="ds-label mb-4 text-center text-muted-foreground">We found your match</p>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-background hover:shadow-md transition-shadow duration-150">
+      <div className="overflow-hidden rounded-xl border border-border bg-background hover:shadow-md transition-shadow duration-150">
         {/* Avatar area */}
         <div className="flex flex-col items-center bg-secondary/40 px-6 pb-5 pt-6">
           <div className="flex size-16 items-center justify-center rounded-full bg-foreground text-background ds-title-sm">
@@ -274,7 +274,7 @@ function SharedSpace({ twin, onCancel }: { twin: Student; onCancel: () => void }
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 8 }}
               transition={{ duration: 0.18 }}
-              className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
             >
               <div className="flex flex-col items-center gap-3 px-6 py-6 text-center">
                 <div className="flex size-12 items-center justify-center rounded-full bg-secondary">

@@ -75,7 +75,7 @@ function StageCelebration({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="relative mx-4 max-w-md rounded-2xl border border-border bg-background p-8 text-center shadow-2xl"
+        className="relative mx-4 max-w-md rounded-xl border border-border bg-background p-8 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex justify-center">
@@ -100,7 +100,7 @@ function StageCelebration({
             <button
               type="button"
               onClick={() => { onDismiss(); onOpenCoPilot(copy.starterPrompt) }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
             >
               <Sparkles className="size-4" />
               Open Co-Pilot for {copy.next}
@@ -109,7 +109,7 @@ function StageCelebration({
           <button
             type="button"
             onClick={onDismiss}
-            className="w-full rounded-xl border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
+            className="w-full rounded-full border border-border px-4 py-3 ds-label text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground"
           >
             Continue to board
           </button>
@@ -175,14 +175,14 @@ function GuidelinesDrawer({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={handleSave}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 ds-label text-background transition-all hover:bg-foreground/80"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 ds-label text-background transition-all hover:bg-foreground/80"
         >
           Save guidelines
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-border px-4 py-2.5 ds-label text-muted-foreground transition-all hover:border-foreground/30"
+          className="rounded-full border border-border px-4 py-2.5 ds-label text-muted-foreground transition-all hover:border-foreground/30"
         >
           Cancel
         </button>

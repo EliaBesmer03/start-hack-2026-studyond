@@ -182,7 +182,7 @@ function CoPilotPrep({ onContinue }: { onContinue: () => void }) {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-border bg-background overflow-hidden"
+      className="rounded-xl border border-border bg-background overflow-hidden"
     >
       <div className="bg-ai px-5 py-4">
         <div className="flex items-center gap-2">

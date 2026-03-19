@@ -238,7 +238,7 @@ export function StartingTutorial({
           width: 308,
           ...currentStep.tooltipStyle,
         }}
-        className="rounded-2xl border border-border bg-background p-5 shadow-2xl"
+        className="rounded-xl border border-border bg-background p-5 shadow-2xl"
       >
         {/* Step dots + close */}
         <div className="mb-3 flex items-center justify-between">
@@ -277,7 +277,7 @@ export function StartingTutorial({
           <button
             type="button"
             onClick={next}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2.5 ds-label text-background transition-all hover:bg-foreground/80"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 ds-label text-background transition-all hover:bg-foreground/80"
           >
             {currentStep.cta ?? (step === steps.length - 1 ? 'Finish' : 'Next')}
             <ChevronRight className="size-4" />
