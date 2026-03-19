@@ -72,7 +72,7 @@ function StageCelebration({
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         className="relative mx-4 max-w-md rounded-2xl border border-border bg-background p-8 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -133,7 +133,7 @@ function GuidelinesDrawer({ onClose }: { onClose: () => void }) {
       initial={{ x: '100%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '100%', opacity: 0 }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       className="flex h-full w-[380px] shrink-0 flex-col border-l border-border bg-background"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">

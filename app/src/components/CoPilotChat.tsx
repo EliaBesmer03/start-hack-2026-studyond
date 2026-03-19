@@ -221,7 +221,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
       initial={{ x: '100%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '100%', opacity: 0 }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       className="flex h-full w-[380px] shrink-0 flex-col border-l border-border bg-background"
     >
       {/* Header */}
