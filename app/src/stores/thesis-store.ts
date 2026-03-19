@@ -51,6 +51,14 @@ const DEFAULT_TASKS: Task[] = [
     status: 'ready',
   },
   {
+    id: 'os',
+    stageId: 'orientation',
+    title: 'Discover Your Learning Profile',
+    description: 'Optional: map your personality and academic strengths with a quick spider-web survey.',
+    featureId: 'intelligence-survey',
+    status: 'ready',
+  },
+  {
     id: 'o2',
     stageId: 'orientation',
     title: 'Browse 3+ Topic Areas',
@@ -243,6 +251,7 @@ interface ThesisState {
   savedMatchIds: string[]
   finalDecision: FinalDecision | null
   timeline: TimelineEntry[]
+  surveyResults: { personality: Record<string, 'a' | 'b' | number>; academic: Record<string, 'a' | 'b'> } | null
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
@@ -268,6 +277,7 @@ interface ThesisState {
   toggleSavedMatch: (matchId: string) => void
   setFinalDecision: (decision: FinalDecision) => void
   setTimeline: (entries: TimelineEntry[]) => void
+  setSurveyResults: (results: { personality: Record<string, 'a' | 'b' | number>; academic: Record<string, 'a' | 'b'> }) => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -296,6 +306,7 @@ export const useThesisStore = create<ThesisState>()(
       savedMatchIds: [],
       finalDecision: null,
       timeline: [],
+      surveyResults: null,
 
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
@@ -333,6 +344,7 @@ export const useThesisStore = create<ThesisState>()(
           savedMatchIds: [],
           finalDecision: null,
           timeline: [],
+          surveyResults: null,
         }),
       completeFeature: (featureId) =>
         set((s) => {
@@ -441,6 +453,8 @@ export const useThesisStore = create<ThesisState>()(
         set({ finalDecision: decision }),
       setTimeline: (entries) =>
         set({ timeline: entries }),
+      setSurveyResults: (results) =>
+        set({ surveyResults: results }),
     }),
     { name: 'studyond-thesis-v4' },
   ),
