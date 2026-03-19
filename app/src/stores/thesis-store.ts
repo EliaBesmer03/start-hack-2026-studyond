@@ -51,6 +51,14 @@ const DEFAULT_TASKS: Task[] = [
     status: 'ready',
   },
   {
+    id: 'os',
+    stageId: 'orientation',
+    title: 'Discover Your Learning Profile',
+    description: 'Optional: map your personality and academic strengths with a quick spider-web survey.',
+    featureId: 'intelligence-survey',
+    status: 'ready',
+  },
+  {
     id: 'o2',
     stageId: 'orientation',
     title: 'Browse 3+ Topic Areas',
@@ -255,7 +263,6 @@ interface ThesisState {
   savedMatchIds: string[]
   finalDecision: FinalDecision | null
   timeline: TimelineEntry[]
-  savedLiterature: SavedLiterature[]
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
@@ -281,8 +288,6 @@ interface ThesisState {
   toggleSavedMatch: (matchId: string) => void
   setFinalDecision: (decision: FinalDecision) => void
   setTimeline: (entries: TimelineEntry[]) => void
-  addLiterature: (record: SavedLiterature) => void
-  removeLiterature: (id: string) => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -311,7 +316,6 @@ export const useThesisStore = create<ThesisState>()(
       savedMatchIds: [],
       finalDecision: null,
       timeline: [],
-      savedLiterature: [],
 
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
@@ -349,7 +353,6 @@ export const useThesisStore = create<ThesisState>()(
           savedMatchIds: [],
           finalDecision: null,
           timeline: [],
-          savedLiterature: [],
         }),
       completeFeature: (featureId) =>
         set((s) => {
@@ -458,16 +461,6 @@ export const useThesisStore = create<ThesisState>()(
         set({ finalDecision: decision }),
       setTimeline: (entries) =>
         set({ timeline: entries }),
-      addLiterature: (record) =>
-        set((s) => ({
-          savedLiterature: s.savedLiterature.some((r) => r.id === record.id)
-            ? s.savedLiterature
-            : [...s.savedLiterature, record],
-        })),
-      removeLiterature: (id) =>
-        set((s) => ({
-          savedLiterature: s.savedLiterature.filter((r) => r.id !== id),
-        })),
     }),
     { name: 'studyond-thesis-v4' },
   ),

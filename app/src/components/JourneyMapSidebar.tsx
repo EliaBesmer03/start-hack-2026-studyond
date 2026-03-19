@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Clock, LogOut } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Clock, LogOut, LayoutDashboard } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
 import type { ThesisStage } from '@/types/thesis'
@@ -10,6 +10,7 @@ import logo from '@/assets/studyond.svg'
 export type FeatureId =
   | 'topic-explore'
   | 'profile-setup'
+  | 'intelligence-survey'
   | 'topic-match'
   | 'supervisor-search'
   | 'final-decision'
@@ -34,8 +35,9 @@ export interface FeatureItem {
 
 const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   orientation: [
-    { id: 'profile-setup',   label: 'Thesis Profile',   description: 'Set up your interests, field, and constraints' },
-    { id: 'topic-explore',   label: 'Explore Topics',   description: 'Browse curated topics and company briefs' },
+    { id: 'profile-setup',      label: 'Thesis Profile',        description: 'Set up your interests, field, and constraints' },
+    { id: 'intelligence-survey', label: 'Learning Profile',      description: 'Optional: discover your personality & academic strengths' },
+    { id: 'topic-explore',      label: 'Explore Topics',        description: 'Browse curated topics and company briefs' },
   ],
   'topic-discovery': [
     { id: 'topic-explore',     label: 'Explore Topics',    description: 'Browse and bookmark up to 3 favourite topics' },
@@ -52,7 +54,7 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
   ],
   planning: [
     { id: 'copilot-literature',   label: 'Literature Review',    description: 'Structure sources and identify research gaps' },
-    { id: 'interview-partners',   label: 'Interview Partners',   description: 'Find and schedule expert interviews' },
+    { id: 'interview-partners',   label: 'Interviews',           description: 'Find and schedule expert interviews' },
     { id: 'thesis-twin',          label: 'Thesis Twin',          description: 'Peer accountability — one student, same stage' },
     { id: 'copilot-data',         label: 'Data Collection',      description: 'Log and track your primary data gathering' },
     { id: 'copilot-analysis',     label: 'Analysis Draft',       description: 'Turn your data into findings with AI review' },
@@ -82,11 +84,12 @@ interface JourneyMapSidebarProps {
   activeFeature: FeatureId | null
   onFeatureSelect: (id: FeatureId) => void
   onReset: () => void
+  onShowBoard: () => void
 }
 
 /* ── Component ─────────────────────────────────────────────────────── */
 
-export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: JourneyMapSidebarProps) {
+export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset, onShowBoard }: JourneyMapSidebarProps) {
   const { profile, tasks } = useThesisStore()
 
   const isFeatureDone = (featureId: FeatureId) =>
@@ -114,6 +117,19 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
 
       {/* Scrollable stage list */}
       <nav className="flex-1 overflow-y-auto py-3">
+        {/* Board button + title */}
+        <div className="px-4">
+          <button
+            type="button"
+            onClick={onShowBoard}
+            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 ds-label transition-colors hover:bg-secondary ${activeFeature === null ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}
+          >
+            <LayoutDashboard className="size-3.5 shrink-0" />
+            Kanban Board
+          </button>
+          <p className="ds-caption mt-3 px-1 pb-0 text-muted-foreground">Your Thesis Lifecycle:</p>
+        </div>
+
         {STAGES.map((stage, index) => {
           const isActive = index === currentIndex
           const isCompleted = index < currentIndex

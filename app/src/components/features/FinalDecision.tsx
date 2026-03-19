@@ -8,6 +8,11 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, GraduationCap, Building2, Bookmark, Sparkles, ChevronDown, ChevronUp, Send } from 'lucide-react'
 import { topics, supervisors, companies, fieldName } from '@/data/mock'
+
+const uniLogoSrc = (universityId: string) =>
+  new URL(`../../../../mock-data/images/${universityId}.svg`, import.meta.url).href
+const companyLogoSrc = (companyId: string) =>
+  new URL(`../../../../mock-data/images/${companyId}.svg`, import.meta.url).href
 import { useThesisStore } from '@/stores/thesis-store'
 import type { FinalDecision as FinalDecisionType } from '@/stores/thesis-store'
 
@@ -108,48 +113,73 @@ export function FinalDecision() {
 
           <div className="divide-y divide-border">
             {/* Topic */}
-            <div className="px-5 py-4">
-              <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
-                <Sparkles className="size-3" />
-                Topic
-              </p>
-              <p className="ds-title-sm text-foreground">{topic?.title}</p>
-              {topic && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {topic.fieldIds.slice(0, 3).map((fid) => (
-                    <span key={fid} className="ds-caption rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{fieldName(fid)}</span>
-                  ))}
-                </div>
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="flex-1">
+                <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+                  <Sparkles className="size-3" />
+                  Topic
+                </p>
+                <p className="ds-title-sm text-foreground">{topic?.title}</p>
+                {topic && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {topic.fieldIds.slice(0, 3).map((fid) => (
+                      <span key={fid} className="ds-caption rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{fieldName(fid)}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {topic?.companyId && (
+                <img
+                  src={companyLogoSrc(topic.companyId)}
+                  alt=""
+                  className="h-auto w-16 shrink-0 object-contain object-right"
+                />
               )}
             </div>
 
             {/* Supervisor */}
-            <div className="px-5 py-4">
-              <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
-                <GraduationCap className="size-3" />
-                Supervisor
-              </p>
-              <p className="ds-label text-foreground">
-                {supervisor?.title} {supervisor?.firstName} {supervisor?.lastName}
-              </p>
-              {supervisor && (
-                <p className="ds-caption mt-0.5 text-muted-foreground">
-                  {supervisor.researchInterests.slice(0, 2).join(' · ')}
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="flex-1">
+                <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+                  <GraduationCap className="size-3" />
+                  Supervisor
                 </p>
+                <p className="ds-label text-foreground">
+                  {supervisor?.title} {supervisor?.firstName} {supervisor?.lastName}
+                </p>
+                {supervisor && (
+                  <p className="ds-caption mt-0.5 text-muted-foreground">
+                    {supervisor.researchInterests.slice(0, 2).join(' · ')}
+                  </p>
+                )}
+              </div>
+              {supervisor && (
+                <img
+                  src={uniLogoSrc(supervisor.universityId)}
+                  alt=""
+                  className="h-auto w-16 shrink-0 object-contain object-right"
+                />
               )}
             </div>
 
             {/* Company */}
             {company && (
-              <div className="px-5 py-4">
-                <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
-                  <Building2 className="size-3" />
-                  Company
-                </p>
-                <p className="ds-label text-foreground">{company.name}</p>
-                <p className="ds-caption mt-0.5 text-muted-foreground">
-                  {company.domains.slice(0, 2).join(' · ')}
-                </p>
+              <div className="flex items-center gap-4 px-5 py-4">
+                <div className="flex-1">
+                  <p className="ds-caption mb-1 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+                    <Building2 className="size-3" />
+                    Company
+                  </p>
+                  <p className="ds-label text-foreground">{company.name}</p>
+                  <p className="ds-caption mt-0.5 text-muted-foreground">
+                    {company.domains.slice(0, 2).join(' · ')}
+                  </p>
+                </div>
+                <img
+                  src={companyLogoSrc(company.id)}
+                  alt=""
+                  className="h-auto w-16 shrink-0 object-contain object-right"
+                />
               </div>
             )}
           </div>
@@ -261,12 +291,12 @@ export function FinalDecision() {
                       key={t.id}
                       type="button"
                       onClick={() => { setSelectedTopicId(t.id); setSelectedCompanyId(t.companyId ?? null); setTopicOpen(false) }}
-                      className={`flex w-full items-start gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/40 ${selectedTopicId === t.id ? 'bg-secondary' : ''}`}
+                      className={`flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/40 ${selectedTopicId === t.id ? 'bg-secondary' : ''}`}
                     >
-                      <span className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${selectedTopicId === t.id ? 'border-foreground bg-foreground text-background' : 'border-border'}`}>
+                      <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${selectedTopicId === t.id ? 'border-foreground bg-foreground text-background' : 'border-border'}`}>
                         {selectedTopicId === t.id && <Check className="size-2.5" strokeWidth={3} />}
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="ds-label text-foreground leading-snug">{t.title}</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {t.fieldIds.slice(0, 2).map((fid) => (
@@ -280,6 +310,13 @@ export function FinalDecision() {
                           )}
                         </div>
                       </div>
+                      {t.companyId && (
+                        <img
+                          src={companyLogoSrc(t.companyId)}
+                          alt=""
+                          className="h-auto w-14 shrink-0 object-contain object-right"
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -326,12 +363,12 @@ export function FinalDecision() {
                       key={s.id}
                       type="button"
                       onClick={() => { setSelectedSupervisorId(s.id); setSupervisorOpen(false) }}
-                      className={`flex w-full items-start gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/40 ${selectedSupervisorId === s.id ? 'bg-secondary' : ''}`}
+                      className={`flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-secondary/40 ${selectedSupervisorId === s.id ? 'bg-secondary' : ''}`}
                     >
                       <span className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${selectedSupervisorId === s.id ? 'border-foreground bg-foreground text-background' : 'border-border'}`}>
                         {selectedSupervisorId === s.id && <Check className="size-2.5" strokeWidth={3} />}
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="ds-label text-foreground">{s.title} {s.firstName} {s.lastName}</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {s.researchInterests.slice(0, 2).map((r, i) => (
@@ -345,6 +382,11 @@ export function FinalDecision() {
                           )}
                         </div>
                       </div>
+                      <img
+                        src={uniLogoSrc(s.universityId)}
+                        alt=""
+                        className="h-auto w-14 shrink-0 object-contain object-right"
+                      />
                     </button>
                   ))}
                 </div>
@@ -390,10 +432,15 @@ export function FinalDecision() {
                   <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${selectedCompanyId === c.id ? 'border-foreground bg-foreground text-background' : 'border-border'}`}>
                     {selectedCompanyId === c.id && <Check className="size-2.5" strokeWidth={3} />}
                   </span>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="ds-label text-foreground">{c.name}</p>
                     <p className="ds-caption text-muted-foreground">{c.domains.slice(0, 2).join(' · ')}</p>
                   </div>
+                  <img
+                    src={companyLogoSrc(c.id)}
+                    alt=""
+                    className="h-auto w-14 shrink-0 object-contain object-right"
+                  />
                 </button>
               ))}
             </div>
