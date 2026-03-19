@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowRight, Check, Filter, AlertCircle, X, Lock } from 'lucide-react'
+import { ArrowRight, Check, Filter, AlertCircle, X, Lock, CalendarDays } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { Task, TaskStatus } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
@@ -42,27 +42,38 @@ function TaskCard({
   onOpen: (featureId: FeatureId) => void
   locked?: boolean
 }) {
-  const { dismissNudge } = useThesisStore()
+  const { dismissNudge, toggleTimelineEntryDone } = useThesisStore()
   const tag = STAGE_TAG[task.stageId]
   const isDone = task.status === 'done'
+  const isTimelineTask = task.id.startsWith('tl-')
+  const entryId = isTimelineTask ? task.id.slice(3) : null
 
   return (
     <div
-      className={`flex flex-col gap-3 rounded-xl border bg-background p-4 transition-shadow duration-150 ${
-        locked && !isDone ? 'opacity-50' : 'hover:shadow-md hover:border-foreground/20'
+      className={`flex flex-col gap-3 rounded-xl p-4 transition-shadow duration-150 ${
+        isTimelineTask
+          ? 'border border-dashed border-border bg-secondary hover:shadow-md hover:border-foreground/20'
+          : `border bg-background ${locked && !isDone ? 'opacity-50' : 'hover:shadow-md hover:border-foreground/20'}`
       }`}
     >
-      {/* Stage tag */}
+      {/* Tag row */}
       <div className="flex items-center justify-between gap-2">
-        <span className={`ds-caption w-fit rounded-full px-2 py-0.5 font-medium ${tag.cls}`}>
-          {tag.label}
-        </span>
+        {isTimelineTask ? (
+          <span className="ds-caption flex items-center gap-1 w-fit rounded-full bg-secondary px-2 py-0.5 font-medium text-muted-foreground">
+            <CalendarDays className="size-3" />
+            Timeline
+          </span>
+        ) : (
+          <span className={`ds-caption w-fit rounded-full px-2 py-0.5 font-medium ${tag.cls}`}>
+            {tag.label}
+          </span>
+        )}
         {isDone && (
           <span className="flex size-5 items-center justify-center rounded-full bg-foreground">
             <Check className="size-3 text-background" strokeWidth={2.5} />
           </span>
         )}
-        {locked && !isDone && (
+        {!isTimelineTask && locked && !isDone && (
           <span className="flex size-5 items-center justify-center rounded-full bg-secondary border border-border">
             <Lock className="size-3 text-muted-foreground" />
           </span>
@@ -79,15 +90,15 @@ function TaskCard({
             {task.description}
           </p>
         )}
-        {locked && !isDone && (
+        {!isTimelineTask && locked && !isDone && (
           <p className="ds-small mt-1 text-muted-foreground/60 leading-snug">
             Complete all previous stage tasks to unlock.
           </p>
         )}
       </div>
 
-      {/* Nudge banner */}
-      {!isDone && !locked && task.nudge && (
+      {/* Nudge banner (stage tasks only) */}
+      {!isTimelineTask && !isDone && !locked && task.nudge && (
         <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary px-3 py-2">
           <AlertCircle className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
           <p className="ds-caption flex-1 text-foreground leading-snug">{task.nudge}</p>
@@ -102,9 +113,10 @@ function TaskCard({
         </div>
       )}
 
-      {/* Open feature button */}
-      {!isDone && !locked && (
-        <div className="pt-1">
+      {/* Footer actions */}
+      <div className="flex items-center justify-between pt-1">
+        {/* Open feature (stage tasks) / Edit timeline (timeline tasks) */}
+        {!isDone && !locked && !isTimelineTask && (
           <button
             type="button"
             onClick={() => onOpen(task.featureId as FeatureId)}
@@ -113,8 +125,27 @@ function TaskCard({
             Open feature
             <ArrowRight className="size-3" />
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Toggle done for timeline tasks */}
+        {isTimelineTask && entryId && (
+          <button
+            type="button"
+            onClick={() => toggleTimelineEntryDone(entryId)}
+            className={`ds-caption flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors ${
+              isDone
+                ? 'border-border text-muted-foreground hover:text-foreground'
+                : 'border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+            }`}
+          >
+            {isDone ? (
+              <><X className="size-3" />Mark undone</>
+            ) : (
+              <><Check className="size-3" />Mark done</>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -241,8 +272,54 @@ interface ThesisBoardProps {
   onFeatureOpen: (id: FeatureId) => void
 }
 
+function deriveTimelineTasks(
+  timeline: import('@/stores/thesis-store').TimelineEntry[],
+  handIn: string | null,
+  currentStage: ThesisStage,
+): Task[] {
+  if (!handIn || timeline.length === 0) return []
+
+  const handInDate = new Date(handIn + 'T12:00:00')
+  const week20Start = new Date(handInDate)
+  week20Start.setDate(week20Start.getDate() - 19 * 7)
+  // align to Monday
+  const dow = week20Start.getDay()
+  week20Start.setDate(week20Start.getDate() + (dow === 0 ? -6 : 1 - dow))
+
+  const todayMs = Date.now()
+
+  return timeline.map((entry) => {
+    const weekStartMs = new Date(week20Start).setDate(
+      week20Start.getDate() + (entry.week - 1) * 7
+    )
+    const weekEndMs = new Date(week20Start).setDate(
+      week20Start.getDate() + (entry.week - 1 + entry.duration) * 7 - 1
+    )
+
+    let status: TaskStatus
+    if (entry.done) {
+      status = 'done'
+    } else if (todayMs > weekEndMs) {
+      status = 'done'
+    } else if (todayMs >= weekStartMs) {
+      status = 'in-progress'
+    } else {
+      status = 'ready'
+    }
+
+    return {
+      id: `tl-${entry.id}`,
+      stageId: currentStage,
+      title: entry.label,
+      description: entry.notes ?? `${entry.category} · ${entry.duration} week${entry.duration !== 1 ? 's' : ''}`,
+      featureId: 'create-timeline',
+      status,
+    }
+  })
+}
+
 export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
-  const { tasks, profile } = useThesisStore()
+  const { tasks, profile, timeline, timelineHandIn } = useThesisStore()
 
   const currentStage = (profile.stage ?? 'orientation') as ThesisStage
   const allStageIds = STAGES.map((s) => s.id) as ThesisStage[]
@@ -275,7 +352,9 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
     setSelectedStages(showAll ? new Set([currentStage]) : new Set(allStageIds))
   }
 
-  const filteredTasks = tasks.filter((t) => selectedStages.has(t.stageId))
+  const timelineTasks = deriveTimelineTasks(timeline, timelineHandIn, currentStage)
+  const allTasks = [...tasks, ...timelineTasks]
+  const filteredTasks = allTasks.filter((t) => selectedStages.has(t.stageId))
 
   // Compute which stages are locked (user hasn't reached them yet)
   const lockedStages = new Set<ThesisStage>(
@@ -328,7 +407,7 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
               key={id}
               stageId={id}
               selected={selectedStages.has(id)}
-              count={tasks.filter((t) => t.stageId === id).length}
+              count={allTasks.filter((t) => t.stageId === id).length}
               isCurrent={id === currentStage}
               onToggle={() => toggleStage(id)}
             />
@@ -337,7 +416,7 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
       </div>
 
       {/* Stage progress bar summary */}
-      <StageProgress tasks={tasks} />
+      <StageProgress tasks={allTasks} />
 
       {/* Board */}
       <div className="flex flex-1 gap-5 overflow-x-auto pb-6">

@@ -205,10 +205,11 @@ export interface FinalDecision {
 export interface TimelineEntry {
   id: string
   label: string
-  category: 'milestone' | 'outreach' | 'writing' | 'research' | 'admin'
+  category: string
   week: number        // 1-based week offset from thesis start
   duration: number    // number of weeks
   notes?: string
+  done?: boolean      // manually marked done by user
 }
 
 export interface SavedLiterature {
@@ -247,6 +248,8 @@ interface ThesisState {
   savedMatchIds: string[]
   finalDecision: FinalDecision | null
   timeline: TimelineEntry[]
+  timelineHandIn: string | null   // ISO date string e.g. "2025-06-30"
+  timelineColumns: { id: string; name: string }[]
   savedLiterature: SavedLiterature[]
   surveyAnswers: Record<string, 'a' | 'b' | number> | null
 
@@ -275,7 +278,9 @@ interface ThesisState {
   toggleShortlistedSupervisor: (supervisorId: string) => void
   toggleSavedMatch: (matchId: string) => void
   setFinalDecision: (decision: FinalDecision) => void
-  setTimeline: (entries: TimelineEntry[]) => void
+  setTimeline: (entries: TimelineEntry[], handIn?: string) => void
+  setTimelineColumns: (columns: { id: string; name: string }[]) => void
+  toggleTimelineEntryDone: (entryId: string) => void
   addLiterature: (record: SavedLiterature) => void
   removeLiterature: (id: string) => void
   setSurveyAnswers: (answers: Record<string, 'a' | 'b' | number>) => void
@@ -309,6 +314,8 @@ export const useThesisStore = create<ThesisState>()(
       savedMatchIds: [],
       finalDecision: null,
       timeline: [],
+      timelineHandIn: null,
+      timelineColumns: [],
       savedLiterature: [],
       surveyAnswers: null,
 
@@ -349,6 +356,8 @@ export const useThesisStore = create<ThesisState>()(
           savedMatchIds: [],
           finalDecision: null,
           timeline: [],
+          timelineHandIn: null,
+          timelineColumns: [],
           savedLiterature: [],
           surveyAnswers: null,
         }),
@@ -468,8 +477,16 @@ export const useThesisStore = create<ThesisState>()(
         })),
       setFinalDecision: (decision) =>
         set({ finalDecision: decision }),
-      setTimeline: (entries) =>
-        set({ timeline: entries }),
+      setTimeline: (entries, handIn) =>
+        set({ timeline: entries, ...(handIn !== undefined ? { timelineHandIn: handIn } : {}) }),
+      setTimelineColumns: (columns) =>
+        set({ timelineColumns: columns }),
+      toggleTimelineEntryDone: (entryId) =>
+        set((s) => ({
+          timeline: s.timeline.map((e) =>
+            e.id === entryId ? { ...e, done: !e.done } : e
+          ),
+        })),
       addLiterature: (record) =>
         set((s) => ({
           savedLiterature: s.savedLiterature.some((r) => r.id === record.id)

@@ -1,17 +1,18 @@
 /**
  * Feature: Create Timeline (vertical, interactive)
- * - Weeks run top-to-bottom; categories are columns
+ * - Weeks run top-to-bottom; columns are user-defined
  * - Hand-in date drives real calendar labels (weeks counted backwards)
  * - Draw on empty space to create a new block (drag-to-create)
  * - Click an existing block to open an edit popup
  * - Drag a block to reposition; drag bottom edge to resize
+ * - Column names and count are fully editable by the user
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check, Calendar, Plus, X,
-  Mail, PenLine, BookOpen, FlaskConical, Flag, RotateCcw, ChevronDown, Trash2,
+  PenLine, Flag, RotateCcw, ChevronDown, Trash2,
 } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { TimelineEntry } from '@/stores/thesis-store'
@@ -20,22 +21,23 @@ import type { TimelineEntry } from '@/stores/thesis-store'
 
 const TOTAL_WEEKS = 20
 const WEEK_H = 48
-const LABEL_W = 88
+const LABEL_W = 120
+const ADD_COL_W = 48
 
-type Category = TimelineEntry['category']
-const CATEGORIES: Category[] = ['admin', 'outreach', 'research', 'writing', 'milestone']
+// ── Column type ────────────────────────────────────────────────────────
 
-const CATEGORY_META: Record<Category, {
-  label: string; icon: React.ReactNode
-  bg: string; text: string; border: string; headerBg: string
-  ghostBg: string
-}> = {
-  admin:     { label: 'Admin',     icon: <BookOpen className="size-3.5" />,     bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
-  outreach:  { label: 'Outreach',  icon: <Mail className="size-3.5" />,         bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
-  research:  { label: 'Research',  icon: <FlaskConical className="size-3.5" />, bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
-  writing:   { label: 'Writing',   icon: <PenLine className="size-3.5" />,      bg: 'bg-secondary',  text: 'text-foreground',  border: 'border-foreground/20', headerBg: 'bg-secondary/60',    ghostBg: 'bg-foreground/8' },
-  milestone: { label: 'Milestone', icon: <Flag className="size-3.5" />,         bg: 'bg-foreground', text: 'text-background',  border: 'border-foreground',   headerBg: 'bg-foreground/10',   ghostBg: 'bg-foreground/20' },
+interface Column {
+  id: string
+  name: string
 }
+
+const DEFAULT_COLUMNS: Column[] = [
+  { id: 'admin',     name: 'Admin' },
+  { id: 'outreach',  name: 'Outreach' },
+  { id: 'research',  name: 'Research' },
+  { id: 'writing',   name: 'Writing' },
+  { id: 'milestone', name: 'Milestone' },
+]
 
 // ── Default timeline ───────────────────────────────────────────────────
 
@@ -58,28 +60,6 @@ const DEFAULT_TIMELINE: TimelineEntry[] = [
   { id: mkId(), label: 'First draft complete',    category: 'milestone', week: 15, duration: 1 },
   { id: mkId(), label: 'Supervisor review',       category: 'milestone', week: 17, duration: 1 },
   { id: mkId(), label: 'Submission',              category: 'milestone', week: 20, duration: 1 },
-]
-
-// ── Palette ────────────────────────────────────────────────────────────
-
-const PALETTE: { label: string; category: Category; duration: number }[] = [
-  { label: 'University registration', category: 'admin',     duration: 1 },
-  { label: 'Proposal submission',     category: 'admin',     duration: 1 },
-  { label: 'Supervisor outreach',     category: 'outreach',  duration: 1 },
-  { label: 'Follow-up outreach',      category: 'outreach',  duration: 1 },
-  { label: 'Expert interviews',       category: 'outreach',  duration: 2 },
-  { label: 'Thesis Twin check-in',    category: 'outreach',  duration: 1 },
-  { label: 'Literature review',       category: 'research',  duration: 4 },
-  { label: 'Data collection',         category: 'research',  duration: 3 },
-  { label: 'Data analysis',           category: 'research',  duration: 2 },
-  { label: 'Write introduction',      category: 'writing',   duration: 2 },
-  { label: 'Write methodology',       category: 'writing',   duration: 2 },
-  { label: 'Write analysis chapter',  category: 'writing',   duration: 3 },
-  { label: 'Write conclusion',        category: 'writing',   duration: 2 },
-  { label: 'First draft complete',    category: 'milestone', duration: 1 },
-  { label: 'Supervisor review',       category: 'milestone', duration: 1 },
-  { label: 'Final draft',             category: 'milestone', duration: 1 },
-  { label: 'Submission',              category: 'milestone', duration: 1 },
 ]
 
 // ── Date helpers ───────────────────────────────────────────────────────
@@ -125,21 +105,21 @@ function clamp(v: number, lo: number, hi: number) {
 
 interface PopupState {
   entryId: string
-  // position in viewport for anchoring
   anchorTop: number
   anchorLeft: number
 }
 
 interface GhostState {
-  category: Category
+  category: string
   startWeek: number
-  endWeek: number   // inclusive, may be < startWeek while dragging up
+  endWeek: number
 }
 
 // ── Edit popup ─────────────────────────────────────────────────────────
 
 function EntryPopup({
   entry,
+  columns,
   handIn,
   anchorTop,
   anchorLeft,
@@ -148,6 +128,7 @@ function EntryPopup({
   onClose,
 }: {
   entry: TimelineEntry
+  columns: Column[]
   handIn: Date
   anchorTop: number
   anchorLeft: number
@@ -156,7 +137,7 @@ function EntryPopup({
   onClose: () => void
 }) {
   const [label, setLabel] = useState(entry.label)
-  const [category, setCategory] = useState<Category>(entry.category)
+  const [category, setCategory] = useState(entry.category)
   const [notes, setNotes] = useState(entry.notes ?? '')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -177,26 +158,21 @@ function EntryPopup({
     if (e.key === 'Escape') onClose()
   }
 
-  // Keep popup within viewport — flip left if too close to right edge
   const popupW = 272
   const leftPos = Math.min(anchorLeft, window.innerWidth - popupW - 16)
 
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
-
-      {/* Panel */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: -4 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -4 }}
         transition={{ duration: 0.15, ease: 'easeOut' }}
-        className="fixed z-50 w-68 rounded-xl border border-border bg-background shadow-xl"
+        className="fixed z-50 rounded-xl border border-border bg-background shadow-xl"
         style={{ top: anchorTop, left: leftPos, width: popupW }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="ds-label text-foreground">Edit block</p>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -205,7 +181,6 @@ function EntryPopup({
         </div>
 
         <div className="p-4 space-y-3">
-          {/* Label */}
           <div>
             <label className="ds-caption mb-1 block text-muted-foreground">Label</label>
             <input
@@ -218,24 +193,22 @@ function EntryPopup({
             />
           </div>
 
-          {/* Category */}
           <div>
-            <label className="ds-caption mb-1 block text-muted-foreground">Category</label>
+            <label className="ds-caption mb-1 block text-muted-foreground">Column</label>
             <div className="relative">
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as Category)}
+                onChange={(e) => setCategory(e.target.value)}
                 className="w-full appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 ds-body text-foreground focus:border-foreground/30 focus:outline-none"
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{CATEGORY_META[cat].label}</option>
+                {columns.map((col) => (
+                  <option key={col.id} value={col.id}>{col.name}</option>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
 
-          {/* Notes */}
           <div>
             <label className="ds-caption mb-1 block text-muted-foreground">Notes</label>
             <textarea
@@ -248,7 +221,6 @@ function EntryPopup({
             />
           </div>
 
-          {/* Date range (read-only) */}
           <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2">
             <p className="ds-caption text-muted-foreground">
               {FMT_SHORT.format(startDate)} – {FMT_SHORT.format(endDate)}
@@ -259,7 +231,6 @@ function EntryPopup({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center gap-2 border-t border-border px-4 py-3">
           <button
             type="button"
@@ -288,6 +259,7 @@ function EntryPopup({
 
 function NewEntryPopup({
   category,
+  columns,
   week,
   duration,
   handIn,
@@ -296,17 +268,18 @@ function NewEntryPopup({
   onConfirm,
   onClose,
 }: {
-  category: Category
+  category: string
+  columns: Column[]
   week: number
   duration: number
   handIn: Date
   anchorTop: number
   anchorLeft: number
-  onConfirm: (label: string, category: Category, notes: string) => void
+  onConfirm: (label: string, category: string, notes: string) => void
   onClose: () => void
 }) {
   const [label, setLabel] = useState('')
-  const [cat, setCat] = useState<Category>(category)
+  const [cat, setCat] = useState(category)
   const [notes, setNotes] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -358,15 +331,15 @@ function NewEntryPopup({
           </div>
 
           <div>
-            <label className="ds-caption mb-1 block text-muted-foreground">Category</label>
+            <label className="ds-caption mb-1 block text-muted-foreground">Column</label>
             <div className="relative">
               <select
                 value={cat}
-                onChange={(e) => setCat(e.target.value as Category)}
+                onChange={(e) => setCat(e.target.value)}
                 className="w-full appearance-none rounded-lg border border-border bg-background py-2 pl-3 pr-8 ds-body text-foreground focus:border-foreground/30 focus:outline-none"
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{CATEGORY_META[c].label}</option>
+                {columns.map((col) => (
+                  <option key={col.id} value={col.id}>{col.name}</option>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -417,7 +390,7 @@ function NewEntryPopup({
 // ── Gantt column ───────────────────────────────────────────────────────
 
 function GanttColumn({
-  category,
+  columnId,
   entries,
   handIn,
   onUpdate,
@@ -425,15 +398,14 @@ function GanttColumn({
   onOpenPopup,
   onCommitDraw,
 }: {
-  category: Category
+  columnId: string
   entries: TimelineEntry[]
   handIn: Date
   onUpdate: (id: string, week: number, duration: number) => void
   onDelete: (id: string) => void
   onOpenPopup: (id: string, anchorTop: number, anchorLeft: number) => void
-  onCommitDraw: (category: Category, week: number, duration: number, anchorTop: number, anchorLeft: number) => void
+  onCommitDraw: (category: string, week: number, duration: number, anchorTop: number, anchorLeft: number) => void
 }) {
-  const meta = CATEGORY_META[category]
   const [ghost, setGhost] = useState<GhostState | null>(null)
   const colRef = useRef<HTMLDivElement>(null)
 
@@ -455,7 +427,6 @@ function GanttColumn({
     }
     const onUp = (ev: MouseEvent) => {
       if (dragRef.current && !dragRef.current.moved) {
-        // click → open popup
         const rect = colRef.current?.getBoundingClientRect()
         const anchorLeft = rect ? rect.left : ev.clientX
         const anchorTop = ev.clientY + 8
@@ -496,20 +467,19 @@ function GanttColumn({
   const drawRef = useRef<{ startWeek: number; moved: boolean; startY: number } | null>(null)
 
   const onMouseDownCol = useCallback((e: React.MouseEvent) => {
-    // only left-button on empty space (not on a block)
     if (e.button !== 0) return
     const rect = colRef.current!.getBoundingClientRect()
     const relY = e.clientY - rect.top
     const startWeek = clamp(Math.floor(relY / WEEK_H) + 1, 1, TOTAL_WEEKS)
     drawRef.current = { startWeek, moved: false, startY: e.clientY }
-    setGhost({ category, startWeek, endWeek: startWeek })
+    setGhost({ category: columnId, startWeek, endWeek: startWeek })
 
     const onMove = (ev: MouseEvent) => {
       if (!drawRef.current) return
       if (Math.abs(ev.clientY - drawRef.current.startY) > 4) drawRef.current.moved = true
       const relY2 = ev.clientY - rect.top
       const curWeek = clamp(Math.floor(relY2 / WEEK_H) + 1, 1, TOTAL_WEEKS)
-      setGhost({ category, startWeek: drawRef.current.startWeek, endWeek: curWeek })
+      setGhost({ category: columnId, startWeek: drawRef.current.startWeek, endWeek: curWeek })
     }
     const onUp = (ev: MouseEvent) => {
       if (drawRef.current) {
@@ -517,10 +487,9 @@ function GanttColumn({
         const endWeek = clamp(Math.floor(relY2 / WEEK_H) + 1, 1, TOTAL_WEEKS)
         const week     = Math.min(drawRef.current.startWeek, endWeek)
         const duration = Math.abs(endWeek - drawRef.current.startWeek) + 1
-        // anchor popup slightly below the draw start
         const anchorTop  = rect.top + (week - 1) * WEEK_H + 8
         const anchorLeft = rect.left
-        onCommitDraw(category, week, duration, anchorTop, anchorLeft)
+        onCommitDraw(columnId, week, duration, anchorTop, anchorLeft)
       }
       drawRef.current = null
       setGhost(null)
@@ -529,10 +498,10 @@ function GanttColumn({
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [category, onCommitDraw])
+  }, [columnId, onCommitDraw])
 
-  const ghostTop      = ghost ? (Math.min(ghost.startWeek, ghost.endWeek) - 1) * WEEK_H + 3 : 0
-  const ghostHeight   = ghost ? Math.abs(ghost.endWeek - ghost.startWeek + 1) * WEEK_H - 6 : 0
+  const ghostTop    = ghost ? (Math.min(ghost.startWeek, ghost.endWeek) - 1) * WEEK_H + 3 : 0
+  const ghostHeight = ghost ? Math.abs(ghost.endWeek - ghost.startWeek + 1) * WEEK_H - 6 : 0
 
   return (
     <div
@@ -549,7 +518,7 @@ function GanttColumn({
       {/* Ghost preview while drawing */}
       {ghost && (
         <div
-          className={`absolute left-1 right-1 rounded-lg border-2 border-dashed border-foreground/30 ${meta.ghostBg} pointer-events-none`}
+          className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-foreground/30 bg-foreground/8 pointer-events-none"
           style={{ top: ghostTop, height: Math.max(ghostHeight, WEEK_H - 6) }}
         />
       )}
@@ -564,14 +533,14 @@ function GanttColumn({
         return (
           <div
             key={entry.id}
-            className={`group absolute left-1 right-1 rounded-lg border flex flex-col overflow-hidden cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md hover:z-10 ${meta.bg} ${meta.text} ${meta.border}`}
+            className="group absolute left-1 right-1 rounded-lg border border-foreground/20 bg-secondary text-foreground flex flex-col overflow-hidden cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md hover:z-10"
             style={{ top: top + 3, height: height - 6, zIndex: 1 }}
             onMouseDown={(e) => onMouseDownBlock(e, entry)}
           >
             <div className="flex min-h-0 flex-1 flex-col px-2.5 py-2">
               <div className="flex items-start gap-1">
                 <p className="ds-caption font-semibold leading-snug line-clamp-2 flex-1">{entry.label}</p>
-                {entry.notes && <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-current opacity-40" title="Has notes" />}
+                {entry.notes && <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-foreground opacity-40" title="Has notes" />}
               </div>
               {height >= WEEK_H * 2 && (
                 <p className="ds-caption mt-1 leading-tight opacity-60">
@@ -588,11 +557,83 @@ function GanttColumn({
               className="absolute bottom-0 left-0 right-0 h-2.5 cursor-row-resize flex items-end justify-center pb-0.5"
               onMouseDown={(e) => onMouseDownResize(e, entry)}
             >
-              <div className={`h-px w-8 rounded-full opacity-30 group-hover:opacity-60 transition-opacity ${meta.text === 'text-background' ? 'bg-background' : 'bg-foreground'}`} />
+              <div className="h-px w-8 rounded-full bg-foreground opacity-30 group-hover:opacity-60 transition-opacity" />
             </div>
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ── Editable column header ─────────────────────────────────────────────
+
+function ColumnHeader({
+  column,
+  canDelete,
+  onRename,
+  onDelete,
+}: {
+  column: Column
+  canDelete: boolean
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(column.name)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+  }, [editing])
+
+  const commit = () => {
+    const trimmed = draft.trim()
+    if (trimmed) onRename(column.id, trimmed)
+    else setDraft(column.name)
+    setEditing(false)
+  }
+
+  return (
+    <div className="group flex flex-1 items-center justify-center gap-1 border-r border-border bg-secondary/50 py-3 px-2">
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit()
+            if (e.key === 'Escape') { setDraft(column.name); setEditing(false) }
+          }}
+          className="w-full min-w-0 rounded-md border border-border bg-background px-2 py-0.5 ds-label text-center text-foreground focus:outline-none focus:border-foreground/40"
+        />
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="ds-label text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 group/btn"
+            title="Click to rename"
+          >
+            {column.name}
+            <PenLine className="size-3 opacity-0 group-hover/btn:opacity-50 transition-opacity" />
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(column.id)}
+              className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+              title="Remove column"
+            >
+              <X className="size-3" />
+            </button>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -604,26 +645,61 @@ function defaultHandIn(): string {
   return d.toISOString().slice(0, 10)
 }
 
+let _colId = 100
+const mkColId = () => `col-${_colId++}`
+
 export function CreateTimeline() {
-  const { timeline, setTimeline, completeFeature, uncompleteFeature, tasks } = useThesisStore()
+  const {
+    timeline, timelineHandIn, timelineColumns,
+    setTimeline, setTimelineColumns,
+    completeFeature, uncompleteFeature, tasks,
+  } = useThesisStore()
   const isDone = tasks.some((t) => t.featureId === 'create-timeline' && t.status === 'done')
 
+  const [columns, setColumns] = useState<Column[]>(
+    timelineColumns.length > 0 ? timelineColumns : DEFAULT_COLUMNS
+  )
   const [entries, setEntries] = useState<TimelineEntry[]>(() =>
     timeline.length > 0 ? timeline : DEFAULT_TIMELINE.map((e) => ({ ...e }))
   )
-  const [handInStr, setHandInStr] = useState<string>(defaultHandIn)
-  const [customLabel, setCustomLabel] = useState('')
-  const [customCategory, setCustomCategory] = useState<Category>('research')
+  const [handInStr, setHandInStr] = useState<string>(timelineHandIn ?? defaultHandIn())
   const idCounter = useRef(200)
+
+  // Auto-persist entries, hand-in and columns to the store on every change
+  useEffect(() => {
+    setTimeline(entries, handInStr)
+  }, [entries, handInStr, setTimeline])
+
+  useEffect(() => {
+    setTimelineColumns(columns)
+  }, [columns, setTimelineColumns])
 
   // popup state
   const [editPopup, setEditPopup] = useState<PopupState | null>(null)
   const [newPopup, setNewPopup] = useState<{
-    category: Category; week: number; duration: number
+    category: string; week: number; duration: number
     anchorTop: number; anchorLeft: number
   } | null>(null)
 
   const handIn = new Date(handInStr + 'T12:00:00')
+
+  // ── Column management ──────────────────────────────────────────────
+
+  const renameColumn = useCallback((id: string, name: string) => {
+    setColumns((prev) => prev.map((c) => c.id === id ? { ...c, name } : c))
+  }, [])
+
+  const deleteColumn = useCallback((id: string) => {
+    setColumns((prev) => prev.filter((c) => c.id !== id))
+    setEntries((prev) => prev.filter((e) => e.category !== id))
+  }, [])
+
+  const addColumn = () => {
+    const id = mkColId()
+    setColumns((prev) => [...prev, { id, name: 'New column' }])
+  }
+
+  // ── Entry management ───────────────────────────────────────────────
 
   const updateEntry = useCallback((id: string, week: number, duration: number) => {
     setEntries((prev) => prev.map((e) => e.id === id ? { ...e, week, duration } : e))
@@ -637,28 +713,13 @@ export function CreateTimeline() {
     setEntries((prev) => prev.filter((e) => e.id !== id))
   }, [])
 
-  const addFromPalette = (item: { label: string; category: Category; duration: number }) => {
-    const colEntries = entries.filter((e) => e.category === item.category)
-    const lastEnd = colEntries.length > 0 ? Math.max(...colEntries.map((e) => e.week + e.duration - 1)) : 0
-    const week = clamp(lastEnd + 1, 1, TOTAL_WEEKS - item.duration + 1)
-    setEntries((prev) => [...prev, {
-      id: String(idCounter.current++), label: item.label, category: item.category, week, duration: item.duration,
-    }])
-  }
-
-  const addCustomItem = () => {
-    const label = customLabel.trim()
-    if (!label) return
-    addFromPalette({ label, category: customCategory, duration: 1 })
-    setCustomLabel('')
-  }
-
   const resetToDefault = () => {
+    setColumns(DEFAULT_COLUMNS)
     setEntries(DEFAULT_TIMELINE.map((e) => ({ ...e, id: String(idCounter.current++) })))
   }
 
   const handleSave = () => {
-    setTimeline(entries)
+    setTimeline(entries, handInStr)
     completeFeature('create-timeline')
   }
 
@@ -666,11 +727,11 @@ export function CreateTimeline() {
     setEditPopup({ entryId: id, anchorTop, anchorLeft })
   }, [])
 
-  const handleCommitDraw = useCallback((category: Category, week: number, duration: number, anchorTop: number, anchorLeft: number) => {
+  const handleCommitDraw = useCallback((category: string, week: number, duration: number, anchorTop: number, anchorLeft: number) => {
     setNewPopup({ category, week, duration, anchorTop, anchorLeft })
   }, [])
 
-  const handleConfirmNew = (label: string, category: Category, notes: string) => {
+  const handleConfirmNew = (label: string, category: string, notes: string) => {
     if (!newPopup) return
     setEntries((prev) => [...prev, {
       id: String(idCounter.current++),
@@ -700,7 +761,7 @@ export function CreateTimeline() {
         <div>
           <h2 className="ds-title-md text-foreground">Create Timeline</h2>
           <p className="ds-body mt-1 text-muted-foreground">
-            Set your hand-in date, then drag across empty space to create blocks. Click any block to edit it.
+            Set your hand-in date, drag across empty space to create blocks, click any block to edit it. Rename or add columns as needed.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -725,83 +786,34 @@ export function CreateTimeline() {
         </div>
       </div>
 
-      {/* Palette */}
-      <div className="mb-5 rounded-xl border border-border bg-background p-4">
-        <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
-          <Calendar className="size-3" />
-          Quick-add — click a chip to append to that column
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {PALETTE.map((item) => {
-            const meta = CATEGORY_META[item.category]
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => addFromPalette(item)}
-                className={`ds-caption flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition-all hover:shadow-sm active:scale-95 ${meta.border} ${meta.bg} ${meta.text}`}
-              >
-                {meta.icon}
-                {item.label}
-                <Plus className="size-2.5 opacity-50" />
-              </button>
-            )
-          })}
-        </div>
-        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-          <input
-            type="text"
-            value={customLabel}
-            onChange={(e) => setCustomLabel(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addCustomItem()}
-            placeholder="Add custom element…"
-            className="ds-caption min-w-0 flex-1 rounded-xl border border-border bg-secondary px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
-          />
-          <div className="relative">
-            <select
-              value={customCategory}
-              onChange={(e) => setCustomCategory(e.target.value as Category)}
-              className="ds-caption appearance-none rounded-xl border border-border bg-secondary py-1.5 pl-3 pr-7 text-foreground focus:border-foreground/30 focus:outline-none"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{CATEGORY_META[cat].label}</option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
-          </div>
-          <button
-            type="button"
-            onClick={addCustomItem}
-            disabled={!customLabel.trim()}
-            className="flex items-center gap-1 rounded-full border border-border bg-foreground px-3 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
-          >
-            <Plus className="size-3" />
-            Add
-          </button>
-        </div>
-      </div>
-
       {/* Timeline grid */}
       <div className="rounded-xl border border-border bg-background">
         <div className="w-full">
 
           {/* Sticky column headers */}
-          <div className="flex border-b border-border bg-secondary/50" style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-            <div className="shrink-0 border-r border-border px-3 py-3" style={{ width: LABEL_W }}>
+          <div className="flex border-b border-border" style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+            <div className="shrink-0 border-r border-border bg-secondary/50 px-3 py-3" style={{ width: LABEL_W }}>
               <span className="ds-caption text-muted-foreground/60">Week</span>
             </div>
-            {CATEGORIES.map((cat) => {
-              const meta = CATEGORY_META[cat]
-              return (
-                <div
-                  key={cat}
-                  className={`flex flex-1 items-center justify-center gap-2 border-r border-border py-3 ${meta.headerBg}`}
-                >
-                  <span className={cat === 'milestone' ? 'text-foreground' : 'text-muted-foreground'}>{meta.icon}</span>
-                  <span className={`ds-label ${cat === 'milestone' ? 'text-foreground' : 'text-muted-foreground'}`}>{meta.label}</span>
-                </div>
-              )
-            })}
+            {columns.map((col) => (
+              <ColumnHeader
+                key={col.id}
+                column={col}
+                canDelete={columns.length > 1}
+                onRename={renameColumn}
+                onDelete={deleteColumn}
+              />
+            ))}
+            {/* Add column button — fixed width, matched by spacer in body */}
+            <button
+              type="button"
+              onClick={addColumn}
+              className="flex shrink-0 items-center justify-center border-l border-border bg-secondary/30 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              style={{ width: ADD_COL_W }}
+              title="Add column"
+            >
+              <Plus className="size-3.5" />
+            </button>
           </div>
 
           {/* Body */}
@@ -818,21 +830,15 @@ export function CreateTimeline() {
                 return (
                   <div
                     key={weekNum}
-                    className={`absolute left-0 right-0 border-b border-border/40 px-2 ${isHandIn ? 'bg-foreground/5' : ''}`}
+                    className={`absolute left-0 right-0 flex flex-col justify-center border-b border-border/40 px-2 ${isHandIn ? 'bg-foreground/5' : ''}`}
                     style={{ top: i * WEEK_H, height: WEEK_H }}
                   >
                     {monthChange && (
-                      <p className="ds-caption pt-1 font-semibold text-foreground/50 leading-none">{monthChange.label}</p>
+                      <p className="ds-caption font-semibold text-foreground/50 leading-none mb-0.5">{monthChange.label}</p>
                     )}
-                    <p
-                      className={`ds-caption leading-tight ${isHandIn ? 'font-semibold text-foreground' : 'text-muted-foreground/70'}`}
-                      style={{ paddingTop: monthChange ? 2 : 14 }}
-                    >
-                      W{weekNum}
-                    </p>
-                    <p className="ds-caption text-muted-foreground/50 leading-none" style={{ fontSize: 9 }}>
+                    <span className={`ds-caption font-bold leading-tight ${isHandIn ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {FMT_SHORT.format(startDate)}
-                    </p>
+                    </span>
                     {isHandIn && (
                       <span className="absolute right-1.5 top-1/2 -translate-y-1/2 ds-caption rounded-full bg-foreground px-1.5 py-0.5 text-background" style={{ fontSize: 8 }}>
                         Hand-in
@@ -844,11 +850,11 @@ export function CreateTimeline() {
             </div>
 
             {/* Category columns */}
-            {CATEGORIES.map((cat) => (
+            {columns.map((col) => (
               <GanttColumn
-                key={cat}
-                category={cat}
-                entries={entries.filter((e) => e.category === cat)}
+                key={col.id}
+                columnId={col.id}
+                entries={entries.filter((e) => e.category === col.id)}
                 handIn={handIn}
                 onUpdate={updateEntry}
                 onDelete={deleteEntry}
@@ -856,6 +862,9 @@ export function CreateTimeline() {
                 onCommitDraw={handleCommitDraw}
               />
             ))}
+
+            {/* Spacer matching the Add column button */}
+            <div className="shrink-0 border-l border-border" style={{ width: ADD_COL_W }} />
           </div>
         </div>
       </div>
@@ -863,7 +872,7 @@ export function CreateTimeline() {
       {/* Footer */}
       <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
         <p className="ds-small text-muted-foreground">
-          {entries.length} block{entries.length !== 1 ? 's' : ''} ·{' '}
+          {entries.length} block{entries.length !== 1 ? 's' : ''} · {columns.length} column{columns.length !== 1 ? 's' : ''} ·{' '}
           Hand-in {FMT_FULL.format(handIn)}
         </p>
         <AnimatePresence mode="wait">
@@ -899,6 +908,7 @@ export function CreateTimeline() {
           <EntryPopup
             key="edit"
             entry={editEntry}
+            columns={columns}
             handIn={handIn}
             anchorTop={editPopup.anchorTop}
             anchorLeft={editPopup.anchorLeft}
@@ -911,6 +921,7 @@ export function CreateTimeline() {
           <NewEntryPopup
             key="new"
             category={newPopup.category}
+            columns={columns}
             week={newPopup.week}
             duration={newPopup.duration}
             handIn={handIn}
