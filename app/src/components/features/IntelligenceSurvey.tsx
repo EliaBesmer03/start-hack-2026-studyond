@@ -653,7 +653,7 @@ export function IntelligenceSurvey() {
     const sorted = [...A_AXES_ORDERED].sort((a, b) => combined[b] - combined[a])
 
     return (
-      <div className="flex flex-col gap-10 py-4">
+      <div className="mx-auto w-full ds-layout-narrow flex flex-col gap-10 py-4">
         <div>
           <p className="ds-caption font-semibold uppercase tracking-widest text-muted-foreground mb-2">
             Your profile
@@ -661,20 +661,17 @@ export function IntelligenceSurvey() {
           <h1 className="ds-title-lg text-foreground">Academic Identity Map</h1>
         </div>
 
-        {/* Spider web + top domains side by side */}
-        <div className="flex flex-col gap-8 md:flex-row md:items-center md:gap-12">
-          {/* Chart — takes 60% */}
-          <div className="w-full md:w-[40%] shrink-0">
-            <SpiderChart scores={combinedScores} size={500} />
+        {/* Spider chart + domain bars side by side */}
+        <div className="flex flex-col gap-8 md:flex-row md:items-center md:gap-10">
+          <div className="shrink-0 md:w-[300px]">
+            <SpiderChart scores={combinedScores} size={300} />
           </div>
-
-          {/* Top domains ranking — takes remaining 40% */}
           <div className="flex-1 flex flex-col gap-3">
             <p className="ds-label text-muted-foreground mb-1">Domain fit</p>
             {sorted.map((ax, i) => (
-              <div key={ax} className="flex items-center gap-2">
+              <div key={ax} className="flex items-center gap-3">
                 <span className="ds-caption text-muted-foreground w-4 shrink-0">{i + 1}</span>
-                <span className="ds-caption text-foreground w-32 shrink-0 truncate">{ax}</span>
+                <span className="ds-caption text-foreground w-36 shrink-0">{ax}</span>
                 <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
                   <motion.div
                     className="h-full bg-foreground rounded-full"
