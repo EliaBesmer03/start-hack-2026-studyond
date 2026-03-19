@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, Loader2, Sparkles, StickyNote, Trash2, Plus, Brain } from 'lucide-react'
+import { X, Send, Bot, Loader2, Sparkles, StickyNote, Trash2, Plus, Brain, MessageSquarePlus } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Markdown from 'react-markdown'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { Message, KnowledgeFact, KnowledgeCategory } from '@/stores/thesis-store'
 import type { ThesisStage } from '@/types/thesis'
@@ -310,6 +311,21 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     setNoteInput('')
   }
 
+  const handleNewChat = useCallback(() => {
+    if (streaming) return
+    // Extract knowledge from current conversation before clearing
+    if (messages.length >= 2) {
+      const history = messages.map((m) => ({ role: m.role, content: m.content }))
+      extractKnowledge(history, currentStage).then((facts) => {
+        if (facts.length > 0) addKnowledgeFacts(facts)
+      })
+    }
+    setMessages([])
+    setError(null)
+    extractionCountRef.current = 0
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [messages, streaming, currentStage, addKnowledgeFacts])
+
   return (
     <motion.div
       initial={{ x: '100%', opacity: 0 }}
@@ -329,14 +345,26 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             <p className="ds-caption text-muted-foreground mt-0.5">{stageSubtitle} stage</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Close Co-Pilot"
-        >
-          <X className="size-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={streaming || messages.length === 0}
+            className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+            aria-label="New chat"
+            title="Start a new conversation (memory is kept)"
+          >
+            <MessageSquarePlus className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Close Co-Pilot"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
       </div>
 
       {/* Tab bar */}
@@ -450,7 +478,28 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                   }`}
                 >
                   {msg.content ? (
-                    <p className="ds-body whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    msg.role === 'assistant' ? (
+                      <div className="ds-body leading-relaxed prose-chat">
+                        <Markdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            ul: ({ children }) => <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>,
+                            li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                            h1: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
+                            h2: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
+                            h3: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
+                            code: ({ children }) => <code className="rounded bg-background/50 px-1 py-0.5 text-[0.85em]">{children}</code>,
+                            a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline">{children}</a>,
+                          }}
+                        >
+                          {msg.content}
+                        </Markdown>
+                      </div>
+                    ) : (
+                      <p className="ds-body whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    )
                   ) : (
                     <div className="flex items-center gap-1.5 py-0.5">
                       <Loader2 className="size-3 animate-spin text-muted-foreground" />
