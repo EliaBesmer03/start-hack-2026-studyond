@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Menu, X, Sparkles, BookOpen, RotateCcw, ChevronRight, Check } from 'lucide-react'
+import { Menu, X, Sparkles, BookOpen, ChevronRight, Check } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { ThesisStage } from '@/types/thesis'
@@ -7,6 +7,7 @@ import { JourneyMapSidebar, ORDERED_FEATURES } from '@/components/JourneyMapSide
 import type { FeatureId } from '@/components/JourneyMapSidebar'
 import { ThesisBoard } from '@/components/ThesisBoard'
 import { CoPilotChat } from '@/components/CoPilotChat'
+import type { CoPilotMode } from '@/components/CoPilotChat'
 import { SmartMatch } from '@/components/features/SmartMatch'
 import { InterviewPartners } from '@/components/features/InterviewPartners'
 import { ThesisTwin } from '@/components/features/ThesisTwin'
@@ -15,7 +16,8 @@ import { ProfileSetup } from '@/components/features/ProfileSetup'
 import { IntelligenceSurvey } from '@/components/features/IntelligenceSurvey'
 import { TopicExplore } from '@/components/features/TopicExplore'
 import { SupervisorSearch } from '@/components/features/SupervisorSearch'
-import { CoPilotFeature } from '@/components/features/CoPilotFeature'
+import { PlanningCoPilot } from '@/components/features/PlanningCoPilot'
+import { AnalysisCoPilot } from '@/components/features/AnalysisCoPilot'
 import { ThesisAlumni } from '@/components/features/ThesisAlumni'
 import { FinalDecision } from '@/components/features/FinalDecision'
 import { CreateTimeline } from '@/components/features/CreateTimeline'
@@ -272,24 +274,20 @@ function GuidelinesDrawer({ onClose }: { onClose: () => void }) {
 /* ── Feature labels ─────────────────────────────────────────────────── */
 
 const FEATURE_LABELS: Record<FeatureId, string> = {
-  'profile-setup':        'Thesis Profile',
-  'intelligence-survey':  'Learning Profile',
-  'topic-explore':        'Explore Topics',
-  'topic-match':          'Smart Match',
-  'supervisor-search':    'Find Supervisors',
-  'final-decision':       'Final Decision',
-  'create-timeline':      'Create Timeline',
-  'copilot-proposal':     'Thesis Proposal',
-  'copilot-milestones':   'Supervisor Milestones',
-  'copilot-registration': 'Thesis Registration',
-  'methodology':          'Methodology Guide',
-  'copilot-literature':   'Literature Review',
-  'copilot-data':         'Data Collection',
-  'copilot-analysis':     'Analysis Draft',
-  'interview-partners':   'Interview Partners',
-  'draft-reader':         'Draft Reader',
-  'thesis-twin':          'Thesis Twin',
-  'thesis-alumni':        'Alumni Profile',
+  'profile-setup':       'Thesis Profile',
+  'intelligence-survey': 'Learning Profile',
+  'topic-explore':       'Explore Topics',
+  'topic-match':         'Smart Match',
+  'supervisor-search':   'Find Supervisors',
+  'final-decision':      'Final Decision',
+  'create-timeline':     'Create Timeline',
+  'planning-copilot':    'Planning Co-Pilot',
+  'copilot-literature':  'Literature Review',
+  'analysis-copilot':    'Analysis Co-Pilot',
+  'interview-partners':  'Interview Partners',
+  'draft-reader':        'Draft Reader',
+  'thesis-twin':         'Thesis Twin',
+  'thesis-alumni':       'Alumni Profile',
 }
 
 /* ── Feature pane ──────────────────────────────────────────────────── */
@@ -299,7 +297,7 @@ function FeaturePane({
   onOpenCoPilot,
 }: {
   featureId: FeatureId
-  onOpenCoPilot: (prompt?: string) => void
+  onOpenCoPilot: (prompt?: string, mode?: CoPilotMode) => void
 }) {
   if (featureId === 'topic-match') return <SmartMatch />
   if (featureId === 'interview-partners') return <InterviewPartners />
@@ -313,77 +311,8 @@ function FeaturePane({
   if (featureId === 'final-decision') return <FinalDecision />
   if (featureId === 'create-timeline') return <CreateTimeline />
   if (featureId === 'copilot-literature') return <LiteratureSearch onOpenCoPilot={onOpenCoPilot} />
-
-  // Co-Pilot feature stubs — each task has its own entry with tailored prompts
-  const coPilotFeatures: Partial<Record<FeatureId, { title: string; description: string; starters: string[] }>> = {
-    methodology: {
-      title: 'Methodology Guide',
-      description: 'Decide between qualitative, quantitative, and mixed-methods approaches based on your research question.',
-      starters: [
-        'What research method fits a case study?',
-        'How do I justify my methodology choice?',
-        'What are the pros and cons of interviews vs surveys?',
-      ],
-    },
-    'copilot-proposal': {
-      title: 'Thesis Proposal',
-      description: 'AI-guided walkthrough to structure your research question, methodology section, and timeline into a compelling proposal.',
-      starters: [
-        'What goes in a thesis proposal?',
-        'Help me write my research question',
-        'Review the structure of my proposal draft',
-      ],
-    },
-    'copilot-milestones': {
-      title: 'Supervisor Milestones',
-      description: 'Prepare for your supervisor meeting — define key deadlines, check-in dates, and draft review rounds.',
-      starters: [
-        'Help me draft milestones for the next 8 weeks',
-        'What should I align with my supervisor before starting?',
-        'How often should I schedule check-ins?',
-      ],
-    },
-    'copilot-registration': {
-      title: 'Thesis Registration',
-      description: 'Get guidance on the official thesis registration process at your university — deadlines, forms, and requirements.',
-      starters: [
-        'What do I need to register my thesis?',
-        'What are the typical registration deadlines?',
-        'Help me draft my registration abstract',
-      ],
-    },
-    'copilot-data': {
-      title: 'Data Collection',
-      description: 'Track your surveys, experiments, or interviews. Get guidance on data gathering methodology and logistics.',
-      starters: [
-        'Help me plan my data collection timeline',
-        'Write interview questions for my research topic',
-        'How many responses do I need for statistical significance?',
-      ],
-    },
-    'copilot-analysis': {
-      title: 'Analysis Draft',
-      description: 'Turn your raw data into findings. Co-Pilot reviews structure, logic, and helps you present results clearly.',
-      starters: [
-        'How do I structure my findings chapter?',
-        'Help me interpret these interview themes',
-        "I'm stuck on my analysis — where do I start?",
-      ],
-    },
-  }
-
-  const meta = coPilotFeatures[featureId]
-  if (meta) {
-    return (
-      <CoPilotFeature
-        title={meta.title}
-        description={meta.description}
-        starters={meta.starters}
-        featureId={featureId}
-        onOpenCoPilot={onOpenCoPilot}
-      />
-    )
-  }
+  if (featureId === 'planning-copilot') return <PlanningCoPilot onOpenCoPilot={onOpenCoPilot} />
+  if (featureId === 'analysis-copilot') return <AnalysisCoPilot onOpenCoPilot={onOpenCoPilot} />
 
   return null
 }
@@ -397,18 +326,21 @@ export function Dashboard() {
   const [chatOpen, setChatOpen] = useState(false)
   const [guidelinesOpen, setGuidelinesOpen] = useState(false)
   const [chatStarterPrompt, setChatStarterPrompt] = useState<string | null>(null)
+  const [chatInitialMode, setChatInitialMode] = useState<CoPilotMode | undefined>(undefined)
 
   // Track previous stage to detect advancement
   const prevCelebrateRef = useRef<ThesisStage | null>(null)
 
-  // When Co-Pilot is closed, clear the starter prompt
+  // When Co-Pilot is closed, clear the starter prompt and mode
   const handleCloseChat = useCallback(() => {
     setChatOpen(false)
     setChatStarterPrompt(null)
+    setChatInitialMode(undefined)
   }, [])
 
-  const openCoPilot = useCallback((prompt?: string) => {
+  const openCoPilot = useCallback((prompt?: string, mode?: CoPilotMode) => {
     setChatStarterPrompt(prompt ?? null)
+    setChatInitialMode(mode)
     setChatOpen(true)
   }, [])
 
@@ -514,22 +446,6 @@ export function Dashboard() {
 
           {/* Right: action buttons */}
           <div className="flex items-center gap-2">
-            {/* Demo reset button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Reset demo? This clears all progress and restarts the GPS.')) {
-                  resetProfile()
-                }
-              }}
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption font-medium text-foreground transition-all hover:border-foreground/30"
-              aria-label="Reset demo"
-              title="Reset demo"
-            >
-              <RotateCcw className="size-3.5" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-
             {/* Co-Pilot toggle */}
             <button
               type="button"
@@ -608,6 +524,7 @@ export function Dashboard() {
                 key={`chat-${currentStageId}`}
                 onClose={handleCloseChat}
                 starterPrompt={chatStarterPrompt}
+                initialMode={chatInitialMode}
               />
             )}
             {guidelinesOpen && !chatOpen && (

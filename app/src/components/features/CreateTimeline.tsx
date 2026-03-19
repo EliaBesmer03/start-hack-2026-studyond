@@ -775,14 +775,6 @@ export function CreateTimeline() {
               className="ds-caption border-0 bg-transparent text-foreground focus:outline-none"
             />
           </div>
-          <button
-            type="button"
-            onClick={resetToDefault}
-            className="ds-caption flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-2 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-          >
-            <RotateCcw className="size-3" />
-            Reset
-          </button>
         </div>
       </div>
 

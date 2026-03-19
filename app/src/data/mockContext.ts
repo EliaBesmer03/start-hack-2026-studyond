@@ -81,8 +81,12 @@ export interface StudentProgress {
   favouriteTopicIds: string[]
   shortlistedSupervisorIds: string[]
   acceptedExpertIds: string[]
+  acceptedTwinId?: string | null
+  savedMatchIds?: string[]
   finalDecision: { topicId: string; supervisorId: string; companyId: string | null } | null
-  timeline: { label: string; category: string; week: number; duration: number }[]
+  timeline: { label: string; category: string; week: number; duration: number; notes?: string; done?: boolean }[]
+  timelineHandIn?: string | null
+  timelineColumns?: { id: string; name: string }[]
   tasks: { title: string; stageId: string; status: string }[]
   onboardingAnswers: { questionIndex: number; value: string }[]
   studentName?: string | null
@@ -111,6 +115,7 @@ export function buildSystemPrompt(
   knowledgeFacts: KnowledgeFactInput[] = [],
   progress?: StudentProgress,
   savedLiterature: SavedLiteratureInput[] = [],
+  mode?: string,
 ): string {
   const stageLabel = {
     orientation: 'Orientation',
@@ -243,11 +248,19 @@ export function buildSystemPrompt(
       progressLines.push(`- FINAL DECISION: Topic "${topic?.title ?? progress.finalDecision.topicId}", Supervisor ${sup ? `Prof. ${sup.firstName} ${sup.lastName}` : progress.finalDecision.supervisorId}${comp ? `, Company ${comp.name}` : ''}`)
     }
 
+    // Accepted Thesis Twin
+    if (progress.acceptedTwinId) {
+      progressLines.push(`- Has been paired with a Thesis Twin (peer accountability partner)`)
+    }
+
     // Timeline
     if (progress.timeline.length > 0) {
-      progressLines.push(`- Thesis timeline (${progress.timeline.length} entries):`)
+      const handIn = progress.timelineHandIn ? ` — hand-in date: ${progress.timelineHandIn}` : ''
+      progressLines.push(`- Thesis timeline (${progress.timeline.length} entries${handIn}):`)
       progress.timeline.forEach((t) => {
-        progressLines.push(`  - Week ${t.week}–${t.week + t.duration - 1}: ${t.label} (${t.category})`)
+        const status = t.done ? ' ✓ done' : ''
+        const notes = t.notes ? ` — note: "${t.notes}"` : ''
+        progressLines.push(`  - Week ${t.week}–${t.week + t.duration - 1}: ${t.label} (${t.category})${status}${notes}`)
       })
     }
 
@@ -316,6 +329,88 @@ export function buildSystemPrompt(
 
   const nameIntro = progress?.studentName ? `\nThe student's name: **${progress.studentName}** — use their first name naturally in conversation.` : ''
 
+  // Build a mode-specific context block that references the student's concrete choices
+  const modeContextLines: string[] = []
+  if (mode && progress) {
+    const fd = progress.finalDecision
+    const finalTopic = fd ? allTopics.find((t) => t.id === fd.topicId) : null
+    const finalSup = fd ? allSupervisors.find((s) => s.id === fd.supervisorId) : null
+    const finalComp = fd?.companyId ? allCompanies.find((c) => c.id === fd.companyId) : null
+
+    const favTopics = progress.favouriteTopicIds
+      .map((id) => allTopics.find((t) => t.id === id))
+      .filter(Boolean)
+
+    const shortSups = progress.shortlistedSupervisorIds
+      .map((id) => allSupervisors.find((s) => s.id === id))
+      .filter(Boolean)
+
+    if (mode === 'topic') {
+      modeContextLines.push(`## Your Personalised Context for Topic Mode`)
+      if (finalTopic) {
+        modeContextLines.push(`The student has ALREADY committed to a topic: "${finalTopic.title}"${finalSup ? ` supervised by Prof. ${finalSup.firstName} ${finalSup.lastName}` : ''}${finalComp ? ` in partnership with ${finalComp.name}` : ''}. Help them refine, validate, or build on this choice. If they want to change topic, guide them carefully.`)
+      } else if (favTopics.length > 0) {
+        modeContextLines.push(`The student has bookmarked ${favTopics.length} topic(s): ${favTopics.map((t) => `"${t!.title}"`).join(', ')}. Help them evaluate and narrow down these options.`)
+      } else {
+        modeContextLines.push(`The student has not yet bookmarked any topics. Help them explore the available topic space based on their field and interests.`)
+      }
+      if (shortSups.length > 0) {
+        modeContextLines.push(`Shortlisted supervisors: ${shortSups.map((s) => `Prof. ${s!.firstName} ${s!.lastName}`).join(', ')}. When helping with supervisor outreach, tailor emails to their specific research interests.`)
+      }
+    }
+
+    if (mode === 'planning') {
+      modeContextLines.push(`## Your Personalised Context for Planning Mode`)
+      if (finalTopic) {
+        modeContextLines.push(`CONFIRMED THESIS: "${finalTopic.title}"`)
+        const topicFields = finalTopic.fieldIds.map((f) => fieldMap[f] ?? f).join(', ')
+        if (topicFields) modeContextLines.push(`Research fields: ${topicFields}`)
+        if (finalSup) modeContextLines.push(`Supervisor: Prof. ${finalSup.firstName} ${finalSup.lastName}${finalSup.researchInterests.length > 0 ? ` — interests: ${finalSup.researchInterests.slice(0, 3).join(', ')}` : ''}`)
+        if (finalComp) modeContextLines.push(`Industry partner: ${finalComp.name} (${finalComp.industry})`)
+      } else {
+        modeContextLines.push(`No confirmed topic yet. When answering planning questions, ask the student about their topic direction first so advice can be grounded.`)
+      }
+      if (progress.timeline.length > 0) {
+        const handIn = progress.timelineHandIn ? ` — hand-in: ${progress.timelineHandIn}` : ''
+        modeContextLines.push(`The student has a ${progress.timeline.length}-entry thesis timeline${handIn}. Reference it when discussing milestones and deadlines.`)
+      } else {
+        modeContextLines.push(`The student has not yet created a thesis timeline. Encourage them to build one — it's a prerequisite for good milestone planning.`)
+      }
+      modeContextLines.push(`When helping with proposals or registration abstracts, reference the confirmed topic, supervisor, and any methodology preferences already expressed.`)
+    }
+
+    if (mode === 'analysis') {
+      modeContextLines.push(`## Your Personalised Context for Analysis Mode`)
+      if (finalTopic) {
+        modeContextLines.push(`THESIS TOPIC: "${finalTopic.title}"`)
+        const topicFields = finalTopic.fieldIds.map((f) => fieldMap[f] ?? f).join(', ')
+        if (topicFields) modeContextLines.push(`Research fields: ${topicFields}`)
+        if (finalComp) modeContextLines.push(`Industry partner: ${finalComp.name} (${finalComp.industry}) — company data may be available for primary research`)
+      } else {
+        modeContextLines.push(`No confirmed topic yet. When designing data collection instruments, ask the student about their research question first.`)
+      }
+      if (progress.acceptedExpertIds.length > 0) {
+        const exps = progress.acceptedExpertIds
+          .map((id) => allExperts.find((e) => e.id === id))
+          .filter(Boolean)
+        modeContextLines.push(`Confirmed interview experts: ${exps.map((e) => `${e!.firstName} ${e!.lastName} (${e!.role})`).join(', ')}. Tailor interview guides for these specific people.`)
+      }
+      if (progress.acceptedTwinId) {
+        modeContextLines.push(`The student has a Thesis Twin for peer accountability — they are not working alone.`)
+      }
+      if (savedLiterature.length > 0) {
+        modeContextLines.push(`The student has saved ${savedLiterature.length} literature source(s). Reference these when discussing how to frame analysis against existing research.`)
+      }
+      const doneTlEntries = progress.timeline.filter((t) => t.done)
+      if (doneTlEntries.length > 0) {
+        modeContextLines.push(`Timeline entries already completed: ${doneTlEntries.map((t) => t.label).join(', ')}.`)
+      }
+    }
+  }
+  const modeContextSection = modeContextLines.length > 0
+    ? `\n${modeContextLines.join('\n')}`
+    : ''
+
   const CONCERN_LABELS: Record<string, string> = {
     overview: 'Getting a clear overview of what\'s ahead',
     'topic-help': 'Finding the right topic',
@@ -327,7 +422,7 @@ export function buildSystemPrompt(
 
   return `You are Studyond's **${stageLabel} Co-Pilot** — a specialised AI thesis companion for students in Swiss universities.
 
-The student's current stage: **${stageLabel}**${nameIntro}${concernLabel ? `\nThe student's main concern: ${concernLabel}` : ''}${notesSection}${progressSection}${knowledgeSection}${literatureSection}${guidelinesSection}
+The student's current stage: **${stageLabel}**${nameIntro}${concernLabel ? `\nThe student's main concern: ${concernLabel}` : ''}${notesSection}${progressSection}${knowledgeSection}${literatureSection}${guidelinesSection}${modeContextSection}
 
 Your role:
 - You are a conversational partner — the student can ask you ANYTHING freely

@@ -3,52 +3,61 @@ import { X, Send, Bot, Loader2, Sparkles, StickyNote, Trash2, Plus, Brain, Messa
 import { motion } from 'framer-motion'
 import Markdown from 'react-markdown'
 import { useThesisStore } from '@/stores/thesis-store'
-import type { Message, KnowledgeFact, KnowledgeCategory } from '@/stores/thesis-store'
+import type { Message, KnowledgeCategory } from '@/stores/thesis-store'
 import type { ThesisStage } from '@/types/thesis'
 import { buildSystemPrompt, KNOWLEDGE_EXTRACTION_PROMPT } from '@/data/mockContext'
 
-const STAGE_LABEL: Record<string, string> = {
-  orientation: 'Kompass',
-  'topic-discovery': 'Matcher',
-  'supervisor-search': 'Architekt',
-  planning: 'Coach',
-  'execution-writing': 'Editor',
-}
+// ── Co-Pilot modes ────────────────────────────────────────────────────
 
-const STAGE_SUBTITLE: Record<string, string> = {
-  orientation: 'Orientation',
-  'topic-discovery': 'Topic & Supervisor',
-  'supervisor-search': 'Planning',
-  planning: 'Execution',
-  'execution-writing': 'Writing',
-}
+export type CoPilotMode = 'topic' | 'planning' | 'analysis'
 
-const STARTER_PROMPTS: Record<string, string[]> = {
-  orientation: [
-    'What should I do first?',
-    'How long does a thesis usually take?',
-    'Which topics match a CS background?',
-  ],
-  'topic-discovery': [
-    'Help me shortlist 3 good topics',
-    'Write a cold email to a professor',
-    'What makes a strong thesis topic?',
-  ],
-  'supervisor-search': [
-    'What goes in a thesis proposal?',
-    'Qualitative vs quantitative — which fits me?',
-    'How do I negotiate milestones?',
+export const COPILOT_MODES: { id: CoPilotMode; label: string; subtitle: string }[] = [
+  { id: 'topic',    label: 'Topic',    subtitle: 'Find & refine your research topic' },
+  { id: 'planning', label: 'Planning', subtitle: 'Proposals, methodology & registration' },
+  { id: 'analysis', label: 'Analysis', subtitle: 'Data collection, analysis & findings' },
+]
+
+const MODE_STARTERS: Record<CoPilotMode, string[]> = {
+  topic: [
+    'Help me shortlist 3 strong thesis topics',
+    'What makes a good research question?',
+    'Write a cold email to a potential supervisor',
+    'Which topics fit a business/CS background?',
   ],
   planning: [
-    'Help me structure my literature review',
-    'Write interview questions for a logistics expert',
-    "I'm stuck on my analysis — help me",
+    'What goes in a thesis proposal?',
+    'Qualitative vs. quantitative — which fits me?',
+    'Help me draft milestones for the next 8 weeks',
+    'What do I need to register my thesis?',
+    'How do I justify my methodology choice?',
+    'Write my registration abstract',
+    'What are the pros and cons of interviews vs. surveys?',
+    'How often should I schedule check-ins with my supervisor?',
+    'Review the structure of my proposal draft',
+    'What should I align with my supervisor before starting?',
+    'Help me draft a timeline for my proposal',
+    'What are typical thesis registration deadlines?',
   ],
-  'execution-writing': [
-    'Is my introduction too broad?',
-    'How do I incorporate conflicting feedback?',
-    'What are typical formatting requirements?',
+  analysis: [
+    'Help me plan my data collection timeline',
+    'Write interview questions for my research topic',
+    'How many survey responses do I need for significance?',
+    'How do I structure my findings chapter?',
+    'Help me interpret these interview themes',
+    "I'm stuck on my analysis — where do I start?",
+    'How do I code qualitative interview data?',
+    'What statistical tests fit my research design?',
+    'Help me turn my data into a clear narrative',
+    'What goes in a discussion section vs. findings?',
+    'How do I handle conflicting data points?',
+    'Review the logic of my analysis structure',
   ],
+}
+
+const MODE_ROLE_BASE: Record<CoPilotMode, string> = {
+  topic: `You are the **Topic Co-Pilot** — an expert academic advisor helping students find, refine, and commit to a thesis topic. You have deep knowledge of available research topics, supervisors, and partner companies. Help the student explore ideas, evaluate fit, and craft personalised outreach to supervisors. Be concise, practical, and encouraging. Always reference the student's specific bookmarks, shortlists, and stated interests — never give generic advice when you have their real data.`,
+  planning: `You are the **Planning Co-Pilot** — a thesis project manager and academic writing coach. You specialise in research methodology (qualitative, quantitative, mixed-methods, design science), thesis proposals, supervisor milestone planning, and university registration processes. Give structured, actionable advice grounded in the student's confirmed topic and supervisor. Help them produce concrete deliverables: proposals, milestone plans, registration abstracts — all tailored to their specific research direction.`,
+  analysis: `You are the **Analysis Co-Pilot** — a research methods and data analysis expert. You help students design data collection instruments (surveys, interview guides tailored to their specific domain experts), execute primary research, and analyse and interpret findings. You assist with both qualitative coding and quantitative statistical reasoning. Always ground your advice in the student's confirmed topic, their accepted interview experts, and any literature they have saved. Help them turn their specific raw data into clear, well-structured academic findings.`,
 }
 
 /* ── Direct Anthropic streaming ─────────────────────────────────── */
@@ -119,13 +128,13 @@ async function* streamAnthropic(
 async function extractKnowledge(
   recentMessages: { role: 'user' | 'assistant'; content: string }[],
   stage: ThesisStage,
-): Promise<KnowledgeFact[]> {
+): Promise<import('@/stores/thesis-store').KnowledgeFact[]> {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
   if (!apiKey || recentMessages.length < 2) return []
 
   try {
     const conversationText = recentMessages
-      .slice(-6) // last 3 exchanges
+      .slice(-6)
       .map((m) => `${m.role}: ${m.content}`)
       .join('\n\n')
 
@@ -172,12 +181,13 @@ async function extractKnowledge(
 interface CoPilotChatProps {
   onClose: () => void
   starterPrompt?: string | null
+  initialMode?: CoPilotMode
 }
 
 const MIN_WIDTH = 300
 const MAX_WIDTH = 700
 
-export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
+export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChatProps) {
   const {
     profile, chatHistories, knowledgeFacts, thesisNotes, universityGuidelines,
     saveStageChatMessages, addKnowledgeFacts, addThesisNote, removeThesisNote,
@@ -185,7 +195,8 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     finalDecision, timeline, tasks, savedLiterature, surveyAnswers,
   } = useThesisStore()
 
-  const [panelWidth, setPanelWidth] = useState(380)
+  const [mode, setMode] = useState<CoPilotMode>(initialMode ?? 'topic')
+  const [panelWidth, setPanelWidth] = useState(400)
   const resizeDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
   const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -205,14 +216,14 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [panelWidth])
+
   const stage = profile.stage
   const currentStage: ThesisStage = (stage ?? 'orientation') as ThesisStage
   const concern = profile.concern
-  const botName = STAGE_LABEL[currentStage] ?? 'Kompass'
-  const stageSubtitle = STAGE_SUBTITLE[currentStage] ?? 'Orientation'
-  const starters = STARTER_PROMPTS[currentStage] ?? STARTER_PROMPTS.orientation
 
   const [tab, setTab] = useState<'chat' | 'memory'>('chat')
+
+  // Per-mode messages — use stage chat histories keyed by mode
   const [messages, setMessages] = useState<Message[]>(
     () => chatHistories[currentStage] ?? [],
   )
@@ -224,12 +235,18 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const extractionCountRef = useRef(0)
 
+  const { acceptedTwinId, savedMatchIds, timelineHandIn, timelineColumns } = useThesisStore()
+
   const progress = {
     favouriteTopicIds,
     shortlistedSupervisorIds,
     acceptedExpertIds,
+    acceptedTwinId,
+    savedMatchIds,
     finalDecision,
     timeline,
+    timelineHandIn,
+    timelineColumns,
     tasks: tasks.map((t) => ({ title: t.title, stageId: t.stageId, status: t.status })),
     onboardingAnswers: profile.answers,
     studentName: profile.name,
@@ -237,9 +254,22 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     surveyAnswers,
   }
 
-  const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress, savedLiterature)
+  // Build system prompt: mode-specific role + full personalised base context
+  const systemPrompt = `${MODE_ROLE_BASE[mode]}\n\n${buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress, savedLiterature, mode)}`
 
-  // Persist messages to store whenever they change (per stage)
+  // Reset messages when mode changes
+  useEffect(() => {
+    setMessages([])
+    setError(null)
+    extractionCountRef.current = 0
+  }, [mode])
+
+  // Update initial mode when prop changes (e.g. opened from Planning feature)
+  useEffect(() => {
+    if (initialMode) setMode(initialMode)
+  }, [initialMode])
+
+  // Persist messages to store whenever they change
   useEffect(() => {
     saveStageChatMessages(currentStage, messages)
   }, [messages, saveStageChatMessages, currentStage])
@@ -297,7 +327,6 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
           )
         }
 
-        // Background knowledge extraction every 3 exchanges
         extractionCountRef.current += 1
         if (extractionCountRef.current % 3 === 0) {
           const recentForExtraction = [
@@ -340,7 +369,6 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
 
   const handleNewChat = useCallback(() => {
     if (streaming) return
-    // Extract knowledge from current conversation before clearing
     if (messages.length >= 2) {
       const history = messages.map((m) => ({ role: m.role, content: m.content }))
       extractKnowledge(history, currentStage).then((facts) => {
@@ -352,6 +380,9 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     extractionCountRef.current = 0
     setTimeout(() => inputRef.current?.focus(), 50)
   }, [messages, streaming, currentStage, addKnowledgeFacts])
+
+  const currentModeStarters = MODE_STARTERS[mode]
+  const currentModeMeta = COPILOT_MODES.find((m) => m.id === mode)!
 
   return (
     <motion.div
@@ -368,6 +399,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
         className="absolute left-0 top-0 h-full w-1 cursor-col-resize hover:bg-foreground/10 transition-colors"
         title="Drag to resize"
       />
+
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2.5">
@@ -375,8 +407,8 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             <Sparkles className="size-3.5 text-background" />
           </div>
           <div>
-            <p className="ds-label text-foreground leading-none">{botName}</p>
-            <p className="ds-caption text-muted-foreground mt-0.5">{stageSubtitle} stage</p>
+            <p className="ds-label text-foreground leading-none">Co-Pilot</p>
+            <p className="ds-caption text-muted-foreground mt-0.5">{currentModeMeta.subtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -399,6 +431,24 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
             <X className="size-4" />
           </button>
         </div>
+      </div>
+
+      {/* Mode selector */}
+      <div className="flex shrink-0 gap-1.5 border-b border-border px-3 py-2.5">
+        {COPILOT_MODES.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => setMode(m.id)}
+            className={`flex-1 rounded-lg px-2 py-1.5 ds-caption font-medium transition-colors ${
+              mode === m.id
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab bar */}
@@ -443,12 +493,11 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                   </div>
                   <div className="rounded-xl rounded-tl-sm bg-secondary px-3.5 py-2.5">
                     <p className="ds-body text-foreground leading-relaxed">
-                      Hi! I'm <span className="font-medium">{botName}</span>, your {stageSubtitle} Co-Pilot. I have access to
-                      topics, supervisors, and partner companies.
+                      Hi! I'm your <span className="font-medium">{currentModeMeta.label} Co-Pilot</span>. {currentModeMeta.subtitle}.
                     </p>
                     {(knowledgeFacts.length > 0 || thesisNotes.length > 0) && (
                       <p className="ds-body mt-1.5 text-foreground leading-relaxed">
-                        I have your <span className="font-medium">{thesisNotes.length + knowledgeFacts.length} memory item{(thesisNotes.length + knowledgeFacts.length) > 1 ? 's' : ''}</span> — notes and learned facts from previous chats.
+                        I have your <span className="font-medium">{thesisNotes.length + knowledgeFacts.length} memory item{(thesisNotes.length + knowledgeFacts.length) > 1 ? 's' : ''}</span> loaded.
                       </p>
                     )}
                     <p className="ds-body mt-1.5 text-foreground leading-relaxed">
@@ -460,7 +509,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                 {/* Starter prompts */}
                 <div className="flex flex-col gap-2 pl-8">
                   <p className="ds-caption text-muted-foreground">Try asking:</p>
-                  {starters.map((s) => (
+                  {currentModeStarters.slice(0, 4).map((s) => (
                     <button
                       key={s}
                       type="button"
@@ -570,12 +619,12 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
         </>
       )}
 
-      {/* ── Memory tab (notes + knowledge facts) ── */}
+      {/* ── Memory tab ── */}
       {tab === 'memory' && (
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-6">
 
-            {/* Profile Notes section */}
+            {/* Profile Notes */}
             <div>
               <p className="ds-label mb-1 text-foreground">Profile Notes</p>
               <p className="ds-caption mb-3 text-muted-foreground">
@@ -608,7 +657,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
               )}
             </div>
 
-            {/* Auto-learned facts section */}
+            {/* Learned Facts */}
             <div>
               <p className="ds-label mb-1 text-foreground">Learned Facts</p>
               <p className="ds-caption mb-3 text-muted-foreground">
@@ -629,7 +678,7 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
                       <div className="flex-1">
                         <p className="ds-body leading-relaxed text-foreground">{fact.content}</p>
                         <p className="ds-caption mt-1 text-muted-foreground">
-                          {STAGE_LABEL[fact.sourceStage] ?? fact.sourceStage} · {fact.category}
+                          {fact.sourceStage} · {fact.category}
                         </p>
                       </div>
                       <button
