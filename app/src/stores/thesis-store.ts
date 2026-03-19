@@ -263,6 +263,7 @@ interface ThesisState {
   savedMatchIds: string[]
   finalDecision: FinalDecision | null
   timeline: TimelineEntry[]
+  savedLiterature: SavedLiterature[]
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
@@ -288,6 +289,8 @@ interface ThesisState {
   toggleSavedMatch: (matchId: string) => void
   setFinalDecision: (decision: FinalDecision) => void
   setTimeline: (entries: TimelineEntry[]) => void
+  addLiterature: (record: SavedLiterature) => void
+  removeLiterature: (id: string) => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -316,6 +319,7 @@ export const useThesisStore = create<ThesisState>()(
       savedMatchIds: [],
       finalDecision: null,
       timeline: [],
+      savedLiterature: [],
 
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
@@ -353,6 +357,7 @@ export const useThesisStore = create<ThesisState>()(
           savedMatchIds: [],
           finalDecision: null,
           timeline: [],
+          savedLiterature: [],
         }),
       completeFeature: (featureId) =>
         set((s) => {
@@ -461,6 +466,16 @@ export const useThesisStore = create<ThesisState>()(
         set({ finalDecision: decision }),
       setTimeline: (entries) =>
         set({ timeline: entries }),
+      addLiterature: (record) =>
+        set((s) => ({
+          savedLiterature: s.savedLiterature.some((r) => r.id === record.id)
+            ? s.savedLiterature
+            : [...s.savedLiterature, record],
+        })),
+      removeLiterature: (id) =>
+        set((s) => ({
+          savedLiterature: s.savedLiterature.filter((r) => r.id !== id),
+        })),
     }),
     { name: 'studyond-thesis-v4' },
   ),
