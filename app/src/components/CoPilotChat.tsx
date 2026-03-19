@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, Loader2, Sparkles, StickyNote, Trash2, Plus, Brain, MessageSquarePlus } from 'lucide-react'
+import { X, Send, Bot, Loader2, Sparkles, MessageSquarePlus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { Message, KnowledgeCategory } from '@/stores/thesis-store'
 import type { ThesisStage } from '@/types/thesis'
@@ -190,7 +191,7 @@ const MAX_WIDTH = 700
 export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChatProps) {
   const {
     profile, chatHistories, knowledgeFacts, thesisNotes, universityGuidelines,
-    saveStageChatMessages, addKnowledgeFacts, addThesisNote, removeThesisNote,
+    saveStageChatMessages, addKnowledgeFacts, addThesisNote,
     favouriteTopicIds, shortlistedSupervisorIds, acceptedExpertIds,
     finalDecision, timeline, tasks, savedLiterature, surveyAnswers,
   } = useThesisStore()
@@ -220,8 +221,6 @@ export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChat
   const stage = profile.stage
   const currentStage: ThesisStage = (stage ?? 'orientation') as ThesisStage
   const concern = profile.concern
-
-  const [tab, setTab] = useState<'chat' | 'memory'>('chat')
 
   // Per-mode messages — use stage chat histories keyed by mode
   const [messages, setMessages] = useState<Message[]>(
@@ -279,12 +278,10 @@ export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChat
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Focus input when switching to chat tab
+  // Focus input on mount
   useEffect(() => {
-    if (tab === 'chat') {
-      setTimeout(() => inputRef.current?.focus(), 50)
-    }
-  }, [tab])
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [])
 
   // Auto-send starterPrompt on mount
   const starterSentRef = useRef(false)
@@ -451,38 +448,8 @@ export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChat
         ))}
       </div>
 
-      {/* Tab bar */}
-      <div className="flex shrink-0 border-b border-border">
-        <button
-          type="button"
-          onClick={() => setTab('chat')}
-          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ds-caption font-medium transition-colors ${
-            tab === 'chat' ? 'border-b-2 border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Bot className="size-3.5" />
-          Chat
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('memory')}
-          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 ds-caption font-medium transition-colors ${
-            tab === 'memory' ? 'border-b-2 border-foreground text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Brain className="size-3.5" />
-          Memory
-          {(thesisNotes.length + knowledgeFacts.length) > 0 && (
-            <span className="flex size-4 items-center justify-center rounded-full bg-foreground ds-badge text-background">
-              {thesisNotes.length + knowledgeFacts.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* ── Chat tab ── */}
-      {tab === 'chat' && (
-        <>
+      {/* ── Chat ── */}
+      <>
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
               <div className="flex flex-col gap-4">
@@ -544,6 +511,7 @@ export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChat
                     msg.role === 'assistant' ? (
                       <div className="ds-body leading-relaxed prose-chat">
                         <Markdown
+                          remarkPlugins={[remarkGfm]}
                           components={{
                             p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                             strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
@@ -555,6 +523,12 @@ export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChat
                             h3: ({ children }) => <p className="mb-1 font-semibold">{children}</p>,
                             code: ({ children }) => <code className="rounded bg-background/50 px-1 py-0.5 ds-caption">{children}</code>,
                             a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline">{children}</a>,
+                            table: ({ children }) => <div className="mb-3 overflow-x-auto"><table className="w-full border-collapse ds-caption">{children}</table></div>,
+                            thead: ({ children }) => <thead className="border-b border-border">{children}</thead>,
+                            tbody: ({ children }) => <tbody>{children}</tbody>,
+                            tr: ({ children }) => <tr className="border-b border-border/50 last:border-0">{children}</tr>,
+                            th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold text-foreground">{children}</th>,
+                            td: ({ children }) => <td className="px-3 py-1.5 text-muted-foreground">{children}</td>,
                           }}
                         >
                           {msg.content}
@@ -617,112 +591,6 @@ export function CoPilotChat({ onClose, starterPrompt, initialMode }: CoPilotChat
             </button>
           </form>
         </>
-      )}
-
-      {/* ── Memory tab ── */}
-      {tab === 'memory' && (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-6">
-
-            {/* Profile Notes */}
-            <div>
-              <p className="ds-label mb-1 text-foreground">Profile Notes</p>
-              <p className="ds-caption mb-3 text-muted-foreground">
-                Injected into every conversation — record your preferences, decisions, and constraints.
-              </p>
-              {thesisNotes.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border py-6 text-center">
-                  <StickyNote className="mx-auto mb-2 size-5 text-muted-foreground/30" />
-                  <p className="ds-caption text-muted-foreground/50">No notes yet — add one below</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {thesisNotes.map((note, i) => (
-                    <div
-                      key={i}
-                      className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
-                    >
-                      <p className="ds-body flex-1 leading-relaxed text-foreground">{note}</p>
-                      <button
-                        type="button"
-                        onClick={() => removeThesisNote(i)}
-                        className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
-                        aria-label="Remove note"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Learned Facts */}
-            <div>
-              <p className="ds-label mb-1 text-foreground">Learned Facts</p>
-              <p className="ds-caption mb-3 text-muted-foreground">
-                Automatically extracted from your conversations. Shared across all Co-Pilots.
-              </p>
-              {knowledgeFacts.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border py-6 text-center">
-                  <Brain className="mx-auto mb-2 size-5 text-muted-foreground/30" />
-                  <p className="ds-caption text-muted-foreground/50">No memories yet — chat to build your knowledge base</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {knowledgeFacts.map((fact) => (
-                    <div
-                      key={fact.id}
-                      className="group flex items-start gap-2 rounded-xl border border-border bg-secondary px-3 py-2.5"
-                    >
-                      <div className="flex-1">
-                        <p className="ds-body leading-relaxed text-foreground">{fact.content}</p>
-                        <p className="ds-caption mt-1 text-muted-foreground">
-                          {fact.sourceStage} · {fact.category}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => useThesisStore.getState().removeKnowledgeFact(fact.id)}
-                        className="shrink-0 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
-                        aria-label="Remove fact"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Note input */}
-          <div className="flex shrink-0 items-end gap-2 border-t border-border px-3 py-3">
-            <textarea
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleAddNote()
-                }
-              }}
-              placeholder="Add a profile note…"
-              rows={2}
-              className="ds-body flex-1 resize-none rounded-xl border border-border bg-secondary px-3 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/30 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={handleAddNote}
-              disabled={!noteInput.trim()}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:bg-foreground/80 disabled:opacity-40"
-              aria-label="Add note"
-            >
-              <Plus className="size-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </motion.div>
   )
 }
