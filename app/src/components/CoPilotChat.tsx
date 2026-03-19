@@ -232,6 +232,8 @@ export function CoPilotChat({ onClose, starterPrompt }: CoPilotChatProps) {
     timeline,
     tasks: tasks.map((t) => ({ title: t.title, stageId: t.stageId, status: t.status })),
     onboardingAnswers: profile.answers,
+    studentName: profile.name,
+    studentEmail: profile.email,
   }
 
   const systemPrompt = buildSystemPrompt(stage, concern, thesisNotes, universityGuidelines, knowledgeFacts, progress)

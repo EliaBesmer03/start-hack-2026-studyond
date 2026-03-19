@@ -65,7 +65,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'topic-discovery',
     title: 'Shortlist 3 Topics',
     description: 'Bookmark up to 3 favourite topics — they carry forward into your Smart Match.',
-    featureId: 'smart-match',
+    featureId: 'topic-explore',
     status: 'ready',
   },
   {
@@ -124,7 +124,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'supervisor-search',
     title: 'Draft Thesis Proposal',
     description: 'AI-guided walkthrough: research question, methodology, and timeline.',
-    featureId: 'copilot-planning',
+    featureId: 'copilot-proposal',
     status: 'ready',
   },
   {
@@ -132,7 +132,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'supervisor-search',
     title: 'Agree Milestones with Supervisor',
     description: 'Align on key deadlines — submission dates, check-ins, draft reviews.',
-    featureId: 'copilot-planning',
+    featureId: 'copilot-milestones',
     status: 'ready',
     nudge: 'Your planning deadline passed 3 days ago — want Co-Pilot to help you catch up?',
   },
@@ -141,7 +141,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'supervisor-search',
     title: 'Register Thesis at University',
     description: 'Complete the official registration before your university deadline.',
-    featureId: 'copilot-planning',
+    featureId: 'copilot-registration',
     status: 'ready',
   },
 
@@ -151,7 +151,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'planning',
     title: 'Conduct Literature Review',
     description: 'Co-Pilot helps you structure sources and identify gaps in existing research.',
-    featureId: 'copilot-execution',
+    featureId: 'copilot-literature',
     status: 'ready',
   },
   {
@@ -175,7 +175,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'planning',
     title: 'Gather Primary Data',
     description: 'Conduct your surveys, experiments, or interviews — log progress here.',
-    featureId: 'copilot-execution',
+    featureId: 'copilot-data',
     status: 'ready',
   },
   {
@@ -183,7 +183,7 @@ const DEFAULT_TASKS: Task[] = [
     stageId: 'planning',
     title: 'Complete First Draft of Analysis',
     description: 'Turn your data into findings — Co-Pilot can review structure and logic.',
-    featureId: 'copilot-execution',
+    featureId: 'copilot-analysis',
     status: 'ready',
   },
 
@@ -340,9 +340,18 @@ export const useThesisStore = create<ThesisState>()(
             t.featureId === featureId && t.status !== 'done' ? { ...t, status: 'done' as TaskStatus } : t,
           )
           const currentStage = s.profile.stage ?? 'orientation'
+
+          // Gate features: completing these force-advances the stage
+          // (other tasks in the stage become optional)
+          const GATE_FEATURES: Partial<Record<string, string>> = {
+            'final-decision': 'topic-discovery',  // Final Decision gates stage 2
+          }
+          const isGate = GATE_FEATURES[featureId] === currentStage
+
           const stageTasks = updatedTasks.filter((t) => t.stageId === currentStage)
           const allDone = stageTasks.length > 0 && stageTasks.every((t) => t.status === 'done')
-          const next = allDone ? nextStage(currentStage) : null
+          const shouldAdvance = isGate || allDone
+          const next = shouldAdvance ? nextStage(currentStage) : null
           return {
             tasks: updatedTasks,
             profile: next ? { ...s.profile, stage: next } : s.profile,
@@ -433,6 +442,6 @@ export const useThesisStore = create<ThesisState>()(
       setTimeline: (entries) =>
         set({ timeline: entries }),
     }),
-    { name: 'studyond-thesis-v3' },
+    { name: 'studyond-thesis-v4' },
   ),
 )

@@ -194,19 +194,23 @@ function GuidelinesDrawer({ onClose }: { onClose: () => void }) {
 /* ── Feature labels ─────────────────────────────────────────────────── */
 
 const FEATURE_LABELS: Record<FeatureId, string> = {
-  'profile-setup':     'Thesis Profile',
-  'topic-explore':     'Explore Topics',
-  'topic-match':       'Smart Match',
-  'supervisor-search': 'Find Supervisors',
-  'final-decision':    'Final Decision',
-  'create-timeline':   'Create Timeline',
-  'copilot-planning':  'Planning Co-Pilot',
-  'methodology':       'Methodology Guide',
-  'copilot-execution': 'Execution Co-Pilot',
-  'interview-partners':'Interview Partners',
-  'draft-reader':      'Draft Reader',
-  'thesis-twin':       'Thesis Twin',
-  'thesis-alumni':     'Alumni Profile',
+  'profile-setup':        'Thesis Profile',
+  'topic-explore':        'Explore Topics',
+  'topic-match':          'Smart Match',
+  'supervisor-search':    'Find Supervisors',
+  'final-decision':       'Final Decision',
+  'create-timeline':      'Create Timeline',
+  'copilot-proposal':     'Thesis Proposal',
+  'copilot-milestones':   'Supervisor Milestones',
+  'copilot-registration': 'Thesis Registration',
+  'methodology':          'Methodology Guide',
+  'copilot-literature':   'Literature Review',
+  'copilot-data':         'Data Collection',
+  'copilot-analysis':     'Analysis Draft',
+  'interview-partners':   'Interview Partners',
+  'draft-reader':         'Draft Reader',
+  'thesis-twin':          'Thesis Twin',
+  'thesis-alumni':        'Alumni Profile',
 }
 
 /* ── Feature pane ──────────────────────────────────────────────────── */
@@ -229,17 +233,8 @@ function FeaturePane({
   if (featureId === 'final-decision') return <FinalDecision />
   if (featureId === 'create-timeline') return <CreateTimeline />
 
-  // Co-Pilot feature stubs
+  // Co-Pilot feature stubs — each task has its own entry with tailored prompts
   const coPilotFeatures: Partial<Record<FeatureId, { title: string; description: string; starters: string[] }>> = {
-    'copilot-planning': {
-      title: 'Planning Co-Pilot',
-      description: 'AI guidance on methodology selection, thesis proposal structure, and milestone planning with your supervisor.',
-      starters: [
-        'What goes in a thesis proposal?',
-        'Qualitative vs quantitative — which fits my topic?',
-        'Help me draft milestones for the next 8 weeks',
-      ],
-    },
     methodology: {
       title: 'Methodology Guide',
       description: 'Decide between qualitative, quantitative, and mixed-methods approaches based on your research question.',
@@ -249,13 +244,58 @@ function FeaturePane({
         'What are the pros and cons of interviews vs surveys?',
       ],
     },
-    'copilot-execution': {
-      title: 'Execution Co-Pilot',
-      description: 'Support for your literature review, data collection, interview prep, and first analysis draft.',
+    'copilot-proposal': {
+      title: 'Thesis Proposal',
+      description: 'AI-guided walkthrough to structure your research question, methodology section, and timeline into a compelling proposal.',
+      starters: [
+        'What goes in a thesis proposal?',
+        'Help me write my research question',
+        'Review the structure of my proposal draft',
+      ],
+    },
+    'copilot-milestones': {
+      title: 'Supervisor Milestones',
+      description: 'Prepare for your supervisor meeting — define key deadlines, check-in dates, and draft review rounds.',
+      starters: [
+        'Help me draft milestones for the next 8 weeks',
+        'What should I align with my supervisor before starting?',
+        'How often should I schedule check-ins?',
+      ],
+    },
+    'copilot-registration': {
+      title: 'Thesis Registration',
+      description: 'Get guidance on the official thesis registration process at your university — deadlines, forms, and requirements.',
+      starters: [
+        'What do I need to register my thesis?',
+        'What are the typical registration deadlines?',
+        'Help me draft my registration abstract',
+      ],
+    },
+    'copilot-literature': {
+      title: 'Literature Review',
+      description: 'Structure your sources, identify research gaps, and organise your literature review by themes.',
       starters: [
         'Help me structure my literature review',
-        'Write interview questions for a supply chain expert',
-        "I'm stuck on my data analysis — where do I start?",
+        'How do I identify gaps in existing research?',
+        'What makes a strong theoretical framework?',
+      ],
+    },
+    'copilot-data': {
+      title: 'Data Collection',
+      description: 'Track your surveys, experiments, or interviews. Get guidance on data gathering methodology and logistics.',
+      starters: [
+        'Help me plan my data collection timeline',
+        'Write interview questions for my research topic',
+        'How many responses do I need for statistical significance?',
+      ],
+    },
+    'copilot-analysis': {
+      title: 'Analysis Draft',
+      description: 'Turn your raw data into findings. Co-Pilot reviews structure, logic, and helps you present results clearly.',
+      starters: [
+        'How do I structure my findings chapter?',
+        'Help me interpret these interview themes',
+        "I'm stuck on my analysis — where do I start?",
       ],
     },
   }

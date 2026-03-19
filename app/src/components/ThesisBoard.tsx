@@ -8,13 +8,11 @@ import type { FeatureId } from '@/components/JourneyMapSidebar'
 
 const STAGE_ORDER_IDS = STAGES.map((s) => s.id) as ThesisStage[]
 
-/** Returns true if all tasks in the stage BEFORE stageId are done */
-function isPreviousStageDone(stageId: ThesisStage, allTasks: Task[]): boolean {
-  const idx = STAGE_ORDER_IDS.indexOf(stageId)
-  if (idx <= 0) return true // orientation has no previous stage
-  const prevStage = STAGE_ORDER_IDS[idx - 1]
-  const prevTasks = allTasks.filter((t) => t.stageId === prevStage)
-  return prevTasks.length === 0 || prevTasks.every((t) => t.status === 'done')
+/** Returns true if the stage should be unlocked (user has reached it or passed it) */
+function isStageUnlocked(stageId: ThesisStage, currentStage: ThesisStage): boolean {
+  const stageIdx = STAGE_ORDER_IDS.indexOf(stageId)
+  const currentIdx = STAGE_ORDER_IDS.indexOf(currentStage)
+  return stageIdx <= currentIdx
 }
 
 /* ── constants ─────────────────────────────────────────────────────── */
@@ -279,9 +277,9 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
 
   const filteredTasks = tasks.filter((t) => selectedStages.has(t.stageId))
 
-  // Compute which stages are locked (previous stage not fully done)
+  // Compute which stages are locked (user hasn't reached them yet)
   const lockedStages = new Set<ThesisStage>(
-    allStageIds.filter((id) => !isPreviousStageDone(id, tasks))
+    allStageIds.filter((id) => !isStageUnlocked(id, currentStage))
   )
 
   return (

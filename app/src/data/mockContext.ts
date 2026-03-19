@@ -85,6 +85,8 @@ export interface StudentProgress {
   timeline: { label: string; category: string; week: number; duration: number }[]
   tasks: { title: string; stageId: string; status: string }[]
   onboardingAnswers: { questionIndex: number; value: string }[]
+  studentName?: string | null
+  studentEmail?: string | null
 }
 
 /**
@@ -148,6 +150,40 @@ export function buildSystemPrompt(
   // Build progress section from store data
   const progressLines: string[] = []
   if (progress) {
+    // Student identity
+    if (progress.studentName) {
+      progressLines.push(`- Student name: ${progress.studentName}`)
+    }
+    if (progress.studentEmail) {
+      progressLines.push(`- Student email: ${progress.studentEmail}`)
+    }
+
+    // Value-to-label mappings for onboarding answers
+    const VALUE_LABELS: Record<number, Record<string, string>> = {
+      0: {
+        exploring: 'Just starting to explore',
+        interests: 'Has interests, but no confirmed topic',
+        'topic-no-supervisor': 'Has a topic, but needs a supervisor',
+        'topic-and-supervisor': 'Has a topic and a supervisor',
+        writing: 'Already deep into writing',
+        'not-sure': 'Not sure where they are',
+      },
+      1: {
+        business: 'Business & Economics',
+        cs: 'Computer Science & Engineering',
+        social: 'Social Sciences & Humanities',
+        science: 'Natural Sciences & Medicine',
+        'not-sure': 'Not sure yet',
+      },
+      2: {
+        overview: 'A clear overview of what\'s ahead',
+        'topic-help': 'Help finding the right topic',
+        'supervisor-help': 'Connecting with the right supervisor',
+        structure: 'A structured plan to stay on track',
+        'not-sure': 'Not sure',
+      },
+    }
+
     // Onboarding answers
     if (progress.onboardingAnswers.length > 0) {
       const answerLabels: Record<number, string> = {
@@ -156,7 +192,8 @@ export function buildSystemPrompt(
         2: 'Biggest need',
       }
       progress.onboardingAnswers.forEach((a) => {
-        progressLines.push(`- Onboarding — ${answerLabels[a.questionIndex] ?? `Q${a.questionIndex}`}: ${a.value}`)
+        const displayValue = VALUE_LABELS[a.questionIndex]?.[a.value] ?? a.value
+        progressLines.push(`- Onboarding — ${answerLabels[a.questionIndex] ?? `Q${a.questionIndex}`}: ${displayValue}`)
       })
     }
 
@@ -220,9 +257,20 @@ export function buildSystemPrompt(
     ? `\n## Student's Current Progress (from platform actions — bookmarks, decisions, tasks)\n${progressLines.join('\n')}`
     : ''
 
+  const nameIntro = progress?.studentName ? `\nThe student's name: **${progress.studentName}** — use their first name naturally in conversation.` : ''
+
+  const CONCERN_LABELS: Record<string, string> = {
+    overview: 'Getting a clear overview of what\'s ahead',
+    'topic-help': 'Finding the right topic',
+    'supervisor-help': 'Connecting with the right supervisor',
+    structure: 'Having a structured plan to stay on track',
+    'not-sure': 'Not sure yet',
+  }
+  const concernLabel = concern ? (CONCERN_LABELS[concern] ?? concern) : null
+
   return `You are Studyond's **${stageLabel} Co-Pilot** — a specialised AI thesis companion for students in Swiss universities.
 
-The student's current stage: **${stageLabel}**${concern ? `\nThe student's main concern: ${concern}` : ''}${notesSection}${progressSection}${knowledgeSection}${guidelinesSection}
+The student's current stage: **${stageLabel}**${nameIntro}${concernLabel ? `\nThe student's main concern: ${concernLabel}` : ''}${notesSection}${progressSection}${knowledgeSection}${guidelinesSection}
 
 Your role:
 - You are a conversational partner — the student can ask you ANYTHING freely

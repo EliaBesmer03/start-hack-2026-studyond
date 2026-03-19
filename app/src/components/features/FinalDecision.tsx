@@ -25,14 +25,22 @@ export function FinalDecision() {
   const [topicOpen, setTopicOpen] = useState(!finalDecision)
   const [supervisorOpen, setSupervisorOpen] = useState(!finalDecision)
 
-  // Pre-fill from saved matches
+  // Pre-fill from saved matches — handle combo IDs, fav IDs, and base match IDs (m1-m4)
+  const BASE_MATCH_TOPIC_MAP: Record<string, string> = {
+    m1: 'topic-01', m2: 'topic-05', m3: 'topic-09', m4: 'topic-13',
+  }
   const savedMatchTopicIds = savedMatchIds.flatMap((id) => {
-    if (id.startsWith('m')) {
-      // base card
-      return []
+    // Base match cards (m1, m2, m3, m4) → map to their topic IDs
+    if (BASE_MATCH_TOPIC_MAP[id]) {
+      return [BASE_MATCH_TOPIC_MAP[id]]
     }
-    const parts = id.replace('combo-', '').replace('fav-', '').split('-')
-    return [parts[0] + '-' + parts[1]] // reconstruct topic id
+    // Combo and fav IDs → extract topic ID
+    const stripped = id.replace('combo-', '').replace('fav-', '')
+    const parts = stripped.split('-')
+    if (parts.length >= 2) {
+      return [parts[0] + '-' + parts[1]] // reconstruct topic id like "topic-01"
+    }
+    return []
   })
 
   // Topics pool: favourites + topics from saved matches

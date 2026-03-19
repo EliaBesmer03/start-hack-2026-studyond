@@ -14,9 +14,13 @@ export type FeatureId =
   | 'supervisor-search'
   | 'final-decision'
   | 'create-timeline'
-  | 'copilot-planning'
+  | 'copilot-proposal'
+  | 'copilot-milestones'
+  | 'copilot-registration'
   | 'methodology'
-  | 'copilot-execution'
+  | 'copilot-literature'
+  | 'copilot-data'
+  | 'copilot-analysis'
   | 'interview-partners'
   | 'thesis-twin'
   | 'draft-reader'
@@ -34,19 +38,24 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
     { id: 'topic-explore',   label: 'Explore Topics',   description: 'Browse curated topics and company briefs' },
   ],
   'topic-discovery': [
+    { id: 'topic-explore',     label: 'Explore Topics',    description: 'Browse and bookmark up to 3 favourite topics' },
     { id: 'topic-match',       label: 'Smart Match',       description: 'AI-matched topic + supervisor + company combos' },
     { id: 'supervisor-search', label: 'Find Supervisors',  description: 'Shortlist up to 3 supervisors for Smart Match' },
     { id: 'final-decision',    label: 'Final Decision',    description: 'Commit to your final topic/supervisor/company combo' },
   ],
   'supervisor-search': [
-    { id: 'create-timeline',  label: 'Create Timeline',   description: 'Plan your thesis timeline with drag & drop' },
-    { id: 'copilot-planning', label: 'Planning Co-Pilot', description: 'AI guidance on methodology and proposal' },
-    { id: 'methodology',      label: 'Methodology Guide', description: 'Qualitative vs. quantitative decision support' },
+    { id: 'create-timeline',      label: 'Create Timeline',      description: 'Plan your thesis timeline with drag & drop' },
+    { id: 'methodology',          label: 'Methodology Guide',    description: 'Qualitative vs. quantitative decision support' },
+    { id: 'copilot-proposal',     label: 'Thesis Proposal',      description: 'AI-guided proposal: research question, method, timeline' },
+    { id: 'copilot-milestones',   label: 'Supervisor Milestones', description: 'Align on key deadlines and check-ins' },
+    { id: 'copilot-registration', label: 'Thesis Registration',  description: 'Complete official registration at your university' },
   ],
   planning: [
-    { id: 'copilot-execution',  label: 'Execution Co-Pilot',  description: 'AI help with research and data collection' },
-    { id: 'interview-partners', label: 'Interview Partners',   description: 'Find and schedule expert interviews' },
-    { id: 'thesis-twin',        label: 'Thesis Twin',         description: 'Peer accountability — one student, same stage' },
+    { id: 'copilot-literature',   label: 'Literature Review',    description: 'Structure sources and identify research gaps' },
+    { id: 'interview-partners',   label: 'Interview Partners',   description: 'Find and schedule expert interviews' },
+    { id: 'thesis-twin',          label: 'Thesis Twin',          description: 'Peer accountability — one student, same stage' },
+    { id: 'copilot-data',         label: 'Data Collection',      description: 'Log and track your primary data gathering' },
+    { id: 'copilot-analysis',     label: 'Analysis Draft',       description: 'Turn your data into findings with AI review' },
   ],
   'execution-writing': [
     { id: 'draft-reader',  label: 'Draft Reader',  description: 'Request an expert to review your draft' },

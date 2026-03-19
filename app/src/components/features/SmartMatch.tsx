@@ -39,58 +39,112 @@ interface MatchCard {
 
 type CardAction = 'skipped' | 'shortlisted'
 
-// ── Base curated match cards ──────────────────────────────────────────
+// ── Field-to-fieldId mapping (onboarding values → mock field IDs) ─────
 
-const BASE_MATCH_CARDS: MatchCard[] = [
-  {
-    id: 'm1',
-    topic: topics.find((t) => t.id === 'topic-01')!,
-    supervisor: supervisors.find((s) => s.id === 'supervisor-03')!,
-    company: companies.find((c) => c.id === 'company-01')!,
-    score: 91,
-    reasons: [
-      'Your Python & ML skills match the forecasting stack Nestlé uses.',
-      'Supervisor Prof. Dr. Martin Vechev leads the ETH AI Centre — directly relevant.',
-      'You listed "industry access" as a goal; this topic offers a working-student contract.',
-    ],
-  },
-  {
-    id: 'm2',
-    topic: topics.find((t) => t.id === 'topic-05')!,
-    supervisor: supervisors.find((s) => s.id === 'supervisor-01')!,
-    company: companies.find((c) => c.id === 'company-03')!,
-    score: 84,
-    reasons: [
-      "Control systems and embedded work aligns with ABB's robotics R&D track.",
-      "Supervisor's research in autonomous systems directly extends this topic.",
-      'Hybrid workplace — keeps flexibility while giving real lab access.',
-    ],
-  },
-  {
-    id: 'm3',
-    topic: topics.find((t) => t.id === 'topic-09')!,
-    supervisor: supervisors.find((s) => s.id === 'supervisor-05')!,
-    company: companies.find((c) => c.id === 'company-05')!,
-    score: 78,
-    reasons: [
-      "Your interest in sustainability and operations fits SBB's rail infrastructure focus.",
-      'Supervisor brings mixed-methods expertise for a sociotechnical study.',
-      'Graduate programme pathway included — strong career signal.',
-    ],
-  },
-  {
-    id: 'm4',
-    topic: topics.find((t) => t.id === 'topic-13')!,
-    supervisor: supervisors.find((s) => s.id === 'supervisor-07')!,
-    company: companies.find((c) => c.id === 'company-07')!,
-    score: 72,
-    reasons: [
-      'Risk modelling with ML is a growing demand at Swiss insurers.',
-      "Supervisor's actuarial science background complements this applied topic.",
-      'Remote-friendly setup suits your current situation.',
-    ],
-  },
+const FIELD_MATCH_IDS: Record<string, string[]> = {
+  business: ['field-04', 'field-05', 'field-06', 'field-07', 'field-13'],
+  cs:       ['field-01', 'field-02', 'field-03'],
+  social:   ['field-08', 'field-15', 'field-16', 'field-17'],
+  science:  ['field-09', 'field-10', 'field-11', 'field-12'],
+}
+
+// ── Base match seed data ──────────────────────────────────────────────
+
+interface MatchSeed {
+  id: string
+  topicId: string
+  supervisorId: string
+  companyId: string
+}
+
+const MATCH_SEEDS: MatchSeed[] = [
+  { id: 'm1', topicId: 'topic-01', supervisorId: 'supervisor-03', companyId: 'company-01' },
+  { id: 'm2', topicId: 'topic-05', supervisorId: 'supervisor-01', companyId: 'company-03' },
+  { id: 'm3', topicId: 'topic-09', supervisorId: 'supervisor-05', companyId: 'company-05' },
+  { id: 'm4', topicId: 'topic-13', supervisorId: 'supervisor-07', companyId: 'company-07' },
+  { id: 'm5', topicId: 'topic-03', supervisorId: 'supervisor-02', companyId: 'company-02' },
+  { id: 'm6', topicId: 'topic-07', supervisorId: 'supervisor-04', companyId: 'company-04' },
+  { id: 'm7', topicId: 'topic-11', supervisorId: 'supervisor-06', companyId: 'company-06' },
+  { id: 'm8', topicId: 'topic-15', supervisorId: 'supervisor-08', companyId: 'company-08' },
 ]
+
+/** Compute a match score + personalised reasons based on user profile */
+function scoreMatch(
+  topic: Topic,
+  supervisor: Supervisor | null,
+  company: Company | null,
+  userFieldIds: string[],
+  thesisNotes: string[],
+): { score: number; reasons: string[] } {
+  let score = 60 // base
+  const reasons: string[] = []
+  const notesText = thesisNotes.join(' ').toLowerCase()
+
+  // Field overlap: +15 per matching field (max +30)
+  const fieldOverlap = topic.fieldIds.filter((f) => userFieldIds.includes(f))
+  if (fieldOverlap.length > 0) {
+    score += Math.min(fieldOverlap.length * 15, 30)
+    const fieldNames = fieldOverlap.map((f) => fieldName(f)).join(' & ')
+    reasons.push(`Topic aligns with your ${fieldNames} background.`)
+  } else {
+    reasons.push(`Cross-disciplinary topic — broadens your research perspective.`)
+  }
+
+  // Supervisor research interest overlap with topic fields
+  if (supervisor) {
+    const supInterests = supervisor.researchInterests.slice(0, 3).join(', ')
+    const supFieldOverlap = supervisor.fieldIds?.filter((f) => topic.fieldIds.includes(f)) ?? []
+    if (supFieldOverlap.length > 0) {
+      score += 8
+      reasons.push(`${supervisor.title} ${supervisor.lastName} researches ${supInterests} — directly relevant.`)
+    } else {
+      reasons.push(`${supervisor.title} ${supervisor.lastName} brings expertise in ${supInterests}.`)
+    }
+  }
+
+  // Company + employment bonus
+  if (company && topic.employment !== 'no') {
+    score += 5
+    const empLabel = topic.employmentType === 'working_student' ? 'working-student contract'
+      : topic.employmentType === 'internship' ? 'internship opportunity'
+      : topic.employmentType === 'graduate_program' ? 'graduate programme pathway'
+      : 'employment opportunity'
+    reasons.push(`${company.name} offers a ${empLabel} alongside this thesis.`)
+  } else if (company) {
+    reasons.push(`Industry partnership with ${company.name} gives real-world data access.`)
+  } else {
+    reasons.push(`Academic topic — ideal for research-focused or PhD pathways.`)
+  }
+
+  // Notes keyword bonuses
+  if (notesText.includes('remote') && topic.workplaceType === 'remote') { score += 4 }
+  if (notesText.includes('sustainability') && topic.fieldIds.includes('field-08')) { score += 4 }
+  if (notesText.includes('industry') && topic.employment !== 'no') { score += 4 }
+  if (notesText.includes('zurich') && topic.workplaceType !== 'remote') { score += 2 }
+
+  // Cap at 97 (never a perfect 100)
+  score = Math.min(score, 97)
+
+  return { score, reasons: reasons.slice(0, 3) }
+}
+
+/** Build scored match cards from seeds, sorted by relevance to the user */
+function buildBaseMatchCards(userFieldAnswer: string | undefined, thesisNotes: string[]): MatchCard[] {
+  const userFieldIds = userFieldAnswer ? (FIELD_MATCH_IDS[userFieldAnswer] ?? []) : []
+
+  return MATCH_SEEDS
+    .map((seed) => {
+      const topic = topics.find((t) => t.id === seed.topicId)
+      if (!topic) return null
+      const supervisor = supervisors.find((s) => s.id === seed.supervisorId) ?? null
+      const company = companies.find((c) => c.id === seed.companyId) ?? null
+      const { score, reasons } = scoreMatch(topic, supervisor, company, userFieldIds, thesisNotes)
+      return { id: seed.id, topic, supervisor, company, score, reasons, isAiRec: true } as MatchCard
+    })
+    .filter(Boolean)
+    .sort((a, b) => b!.score - a!.score)
+    .slice(0, 4) as MatchCard[]
+}
 
 // ── Score badge ───────────────────────────────────────────────────────
 
@@ -323,39 +377,45 @@ function MatchCardView({
 
       {/* Actions */}
       <div className="flex items-center gap-3 border-t border-border px-5 py-4">
-        {isSaved && onRemoveSaved ? (
-          <button
-            type="button"
-            onClick={() => onRemoveSaved(card.id)}
-            className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-red-300 hover:text-red-500"
-            title="Remove from shortlist"
-          >
-            <X className="size-4" />
-          </button>
+        {isSaved ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onRemoveSaved?.(card.id)}
+              className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-red-300 hover:text-red-500"
+              title="Remove from shortlist"
+            >
+              <X className="size-4" />
+            </button>
+            <div className="flex flex-1 items-center justify-center gap-2 rounded-full border border-foreground/20 bg-secondary px-5 py-2.5 ds-label text-foreground">
+              <Bookmark className="size-4 fill-current" />
+              Shortlisted for Final Decision
+            </div>
+          </>
         ) : (
-          <button
-            type="button"
-            onClick={() => onAction(card.id, 'skipped')}
-            className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-            title="Not interested"
-          >
-            <X className="size-4" />
-          </button>
-        )}
-        {!isSaved && (
-          <button
-            type="button"
-            onClick={handleShortlist}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-full transition-all duration-300 px-5 py-2.5 ds-label ${
-              saveFlash
-                ? 'bg-foreground text-background scale-105'
-                : 'bg-foreground text-background hover:bg-foreground/80'
-            }`}
-            title="Shortlist for Final Decision"
-          >
-            <Bookmark className={`size-4 transition-all ${saveFlash ? 'fill-current' : ''}`} />
-            {saveFlash ? 'Shortlisted!' : 'Shortlist'}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => onAction(card.id, 'skipped')}
+              className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+              title="Not interested"
+            >
+              <X className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleShortlist}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-full transition-all duration-300 px-5 py-2.5 ds-label ${
+                saveFlash
+                  ? 'bg-foreground text-background scale-105'
+                  : 'bg-foreground text-background hover:bg-foreground/80'
+              }`}
+              title="Shortlist for Final Decision"
+            >
+              <Bookmark className={`size-4 transition-all ${saveFlash ? 'fill-current' : ''}`} />
+              {saveFlash ? 'Shortlisted!' : 'Shortlist'}
+            </button>
+          </>
         )}
       </div>
     </motion.div>
@@ -366,14 +426,18 @@ function MatchCardView({
 
 export function SmartMatch() {
   const {
-    profile, addAcceptedExpert, favouriteTopicIds,
+    profile, addAcceptedExpert, favouriteTopicIds, thesisNotes,
     shortlistedSupervisorIds, toggleSavedMatch, savedMatchIds, completeFeature, tasks,
   } = useThesisStore()
 
   const isDone = tasks.some((t) => t.featureId === 'topic-match' && t.status === 'done')
+  const userFieldAnswer = profile.answers.find((a) => a.questionIndex === 1)?.value
+  const userFieldIds = userFieldAnswer ? (FIELD_MATCH_IDS[userFieldAnswer] ?? []) : []
 
   // Build match cards: favourite topics × shortlisted supervisors first, then AI recs
   const cards = useMemo<MatchCard[]>(() => {
+    const baseCards = buildBaseMatchCards(userFieldAnswer, thesisNotes)
+
     // 1) Favourite topic + shortlisted supervisor combos
     const combos: MatchCard[] = []
     for (const topicId of favouriteTopicIds) {
@@ -383,50 +447,46 @@ export function SmartMatch() {
         for (const supId of shortlistedSupervisorIds) {
           const sup = supervisors.find((s) => s.id === supId) ?? null
           const company = topic.companyId ? companies.find((c) => c.id === topic.companyId) ?? null : null
+          const { score, reasons } = scoreMatch(topic, sup, company, userFieldIds, thesisNotes)
+          // Boost score for user-curated combos
           combos.push({
             id: `combo-${topicId}-${supId}`,
-            topic,
-            supervisor: sup,
-            company,
-            score: 90,
+            topic, supervisor: sup, company,
+            score: Math.min(score + 5, 97),
             fromFavourite: true,
             reasons: [
               'You bookmarked this topic and shortlisted this supervisor.',
-              sup ? `${sup.title} ${sup.lastName} researches directly aligned topics.` : 'Supervisor TBD.',
-              company ? `${company.name} is looking for thesis students in this area.` : 'Academic topic — strong for PhD pathways.',
+              ...reasons.slice(0, 2),
             ],
           })
         }
       } else {
         // Favourite topic, no supervisors shortlisted yet
-        const base = BASE_MATCH_CARDS.find((c) => c.topic.id === topicId)
+        const base = baseCards.find((c) => c.topic.id === topicId)
         const supervisor = base?.supervisor ?? (topic.supervisorIds[0] ? supervisors.find((s) => s.id === topic.supervisorIds[0]) ?? null : null)
         const company = base?.company ?? (topic.companyId ? companies.find((c) => c.id === topic.companyId) ?? null : null)
+        const { score, reasons } = scoreMatch(topic, supervisor, company, userFieldIds, thesisNotes)
         combos.push({
           id: `fav-${topicId}`,
-          topic,
-          supervisor,
-          company,
-          score: 88,
+          topic, supervisor, company,
+          score: Math.min(score + 3, 97),
           fromFavourite: true,
-          reasons: base?.reasons ?? [
+          reasons: [
             'You bookmarked this topic in your exploration phase.',
-            supervisor ? `${supervisor.title} ${supervisor.lastName} researches directly aligned topics.` : 'Supervisor TBD.',
-            company ? `${company.name} is looking for thesis students in this area.` : 'Academic topic.',
+            ...reasons.slice(0, 2),
           ],
         })
       }
     }
 
-    // 2) AI-generated recs (base cards not already covered)
+    // 2) AI-generated recs (base cards not already covered by favourites)
     const coveredTopicIds = new Set(favouriteTopicIds)
-    const aiRecs = BASE_MATCH_CARDS
+    const aiRecs = baseCards
       .filter((c) => !coveredTopicIds.has(c.topic.id))
-      .map((c) => ({ ...c, isAiRec: true }))
       .sort((a, b) => b.score - a.score)
 
     return [...combos.sort((a, b) => b.score - a.score), ...aiRecs]
-  }, [favouriteTopicIds, shortlistedSupervisorIds])
+  }, [favouriteTopicIds, shortlistedSupervisorIds, userFieldAnswer, thesisNotes, userFieldIds])
 
   const [actions, setActions] = useState<Record<string, CardAction>>({})
   const [tab, setTab] = useState<'matches' | 'shortlisted'>('matches')
