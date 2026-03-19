@@ -1,19 +1,27 @@
 /**
  * Feature: Supervisor Search
  * Browse available supervisors from mock data and draft outreach via Co-Pilot.
+ * Clicking a card opens a full detail drawer.
  */
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bookmark, ChevronDown, ChevronUp, GraduationCap, Mail, MessageSquare, Search, Send, Users } from 'lucide-react'
-import { supervisors, students, projects, fieldName, byId, type Supervisor, type Student, type ThesisProject } from '@/data/mock'
+import {
+  Bookmark, ChevronRight, GraduationCap, Mail, MessageSquare,
+  Search, Send, Users, X,
+} from 'lucide-react'
+import {
+  supervisors, students, projects, topics, fieldName, byId,
+  type Supervisor, type Student, type ThesisProject,
+} from '@/data/mock'
 import { useThesisStore } from '@/stores/thesis-store'
 // @ts-ignore
 import _universities from '@mock/universities.json'
 const universities = _universities as { id: string; name: string; country: string }[]
-const uniName = (id: string) => universities.find((u: { id: string; name: string }) => u.id === id)?.name ?? id
+const uniName = (id: string) => universities.find((u: { id: string }) => u.id === id)?.name ?? id
 
-// Projects that have a supervisor assigned (agreed, in_progress, or completed)
+// ── Helpers ───────────────────────────────────────────────────────────
+
 const ACTIVE_STATES = new Set(['agreed', 'in_progress', 'completed'])
 
 function getPastStudents(supervisorId: string): { student: Student; project: ThesisProject }[] {
@@ -36,127 +44,24 @@ interface SupervisorSearchProps {
   onOpenCoPilot: (prompt?: string) => void
 }
 
-// ── Bookmark icon ─────────────────────────────────────────────────────
-
-function BookmarkIcon({ shortlisted }: { shortlisted: boolean }) {
-  return shortlisted
-    ? <Bookmark className="size-3.5 fill-current" />
-    : <Bookmark className="size-3.5" />
-}
-
-// ── Past students panel ───────────────────────────────────────────────
-
-function PastStudentsPanel({ supervisor }: { supervisor: Supervisor }) {
-  const [open, setOpen] = useState(false)
-  const [connected, setConnected] = useState<Set<string>>(new Set())
-  const entries = getPastStudents(supervisor.id)
-
-  if (entries.length === 0) return null
-
-  return (
-    <div className="border-t border-border">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-2.5 transition-colors hover:bg-secondary/40"
-      >
-        <span className="ds-caption flex items-center gap-1.5 text-muted-foreground">
-          <Users className="size-3" />
-          {entries.length} student{entries.length > 1 ? 's' : ''} worked with this supervisor
-        </span>
-        {open
-          ? <ChevronUp className="size-3.5 text-muted-foreground" />
-          : <ChevronDown className="size-3.5 text-muted-foreground" />
-        }
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="divide-y divide-border border-t border-border">
-              {entries.map(({ student, project }) => (
-                <div key={student.id} className="flex items-start gap-3 bg-secondary/30 px-4 py-3">
-                  {/* Avatar */}
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground ds-badge font-semibold text-background">
-                    {student.firstName[0]}{student.lastName[0]}
-                  </div>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="ds-label text-foreground">
-                        {student.firstName} {student.lastName}
-                      </p>
-                      <span className="ds-badge rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
-                        {STATE_LABEL[project.state] ?? project.state}
-                      </span>
-                    </div>
-                    <p className="ds-caption mt-0.5 text-muted-foreground line-clamp-1">
-                      {project.title}
-                    </p>
-                    {student.about && (
-                      <p className="ds-caption mt-1 text-muted-foreground/70 line-clamp-2 leading-snug">
-                        {student.about}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Connect */}
-                  <div className="shrink-0">
-                    {connected.has(student.id) ? (
-                      <span className="ds-caption flex items-center gap-1 text-muted-foreground">
-                        <MessageSquare className="size-3" />
-                        Sent
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setConnected((prev) => new Set([...prev, student.id]))}
-                        className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background transition-colors hover:bg-foreground/80"
-                      >
-                        <Send className="size-3" />
-                        Connect
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-secondary/30 px-4 pb-3">
-              <p className="ds-caption text-muted-foreground/60">
-                Connecting sends a direct message request. Their contact details are only shared if they accept.
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// ── Supervisor card ───────────────────────────────────────────────────
+// ── Supervisor card (summary) ─────────────────────────────────────────
 
 function SupervisorCard({
-  supervisor, shortlisted, canShortlist, onToggleShortlist, onDraftEmail,
+  supervisor, shortlisted, canShortlist, onToggleShortlist, onOpen,
 }: {
   supervisor: Supervisor
   shortlisted: boolean
   canShortlist: boolean
   onToggleShortlist: () => void
-  onDraftEmail: (s: Supervisor) => void
+  onOpen: (s: Supervisor) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
   const pastCount = getPastStudents(supervisor.id).length
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-background transition-shadow duration-150 hover:shadow-md hover:border-foreground/20">
+    <div
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-background transition-all duration-150 hover:border-foreground/20 hover:shadow-md"
+      onClick={() => onOpen(supervisor)}
+    >
       <div className="flex flex-col gap-3 p-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
@@ -177,7 +82,7 @@ function SupervisorCard({
             )}
             <button
               type="button"
-              onClick={onToggleShortlist}
+              onClick={(e) => { e.stopPropagation(); onToggleShortlist() }}
               disabled={!shortlisted && !canShortlist}
               title={shortlisted ? 'Remove from shortlist' : canShortlist ? 'Add to shortlist (max 3)' : 'Max 3 supervisors shortlisted'}
               className={`flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-30 ${
@@ -186,7 +91,7 @@ function SupervisorCard({
                   : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
               }`}
             >
-              <BookmarkIcon shortlisted={shortlisted} />
+              <Bookmark className={`size-3.5 ${shortlisted ? 'fill-current' : ''}`} />
             </button>
           </div>
         </div>
@@ -211,45 +116,246 @@ function SupervisorCard({
           </div>
         )}
 
-        {/* About (expandable) */}
+        {/* About preview */}
         {supervisor.about && (
-          <div>
-            <p className={`ds-small text-muted-foreground leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
-              {supervisor.about}
-            </p>
-            {supervisor.about.length > 120 && (
-              <button
-                type="button"
-                onClick={() => setExpanded((o) => !o)}
-                className="ds-caption mt-1 text-muted-foreground hover:text-foreground"
-              >
-                {expanded ? 'Show less' : 'Read more'}
-              </button>
-            )}
-          </div>
+          <p className="ds-small text-muted-foreground leading-relaxed line-clamp-2">
+            {supervisor.about}
+          </p>
         )}
 
-        {/* Action */}
-        <button
-          type="button"
-          onClick={() => onDraftEmail(supervisor)}
-          className="ds-caption mt-1 flex w-fit items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-        >
-          <Mail className="size-3" />
-          Draft outreach email →
-        </button>
+        {/* Open hint */}
+        <p className="ds-caption flex items-center gap-1 text-muted-foreground/60 transition-colors group-hover:text-muted-foreground">
+          View details <ChevronRight className="size-3" />
+        </p>
       </div>
-
-      {/* Past students panel */}
-      <PastStudentsPanel supervisor={supervisor} />
     </div>
   )
 }
+
+// ── Supervisor detail drawer ──────────────────────────────────────────
+
+function SupervisorDrawer({
+  supervisor,
+  shortlisted,
+  canShortlist,
+  onToggleShortlist,
+  onDraftEmail,
+  onClose,
+}: {
+  supervisor: Supervisor
+  shortlisted: boolean
+  canShortlist: boolean
+  onToggleShortlist: () => void
+  onDraftEmail: (s: Supervisor) => void
+  onClose: () => void
+}) {
+  const [connected, setConnected] = useState<Set<string>>(new Set())
+  const pastStudents = getPastStudents(supervisor.id)
+  const supervisorTopics = topics.filter((t) => t.supervisorIds.includes(supervisor.id))
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <motion.aside
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl"
+      >
+        {/* Header */}
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="flex items-start gap-4">
+            {/* Avatar */}
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-foreground ds-title-sm font-semibold text-background">
+              {supervisor.firstName[0]}{supervisor.lastName[0]}
+            </div>
+            <div>
+              <h2 className="ds-title-sm text-foreground">
+                {supervisor.title} {supervisor.firstName} {supervisor.lastName}
+              </h2>
+              <p className="ds-body mt-0.5 flex items-center gap-1.5 text-muted-foreground">
+                <GraduationCap className="size-4" />
+                {uniName(supervisor.universityId)}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {supervisor.fieldIds.map((fid) => (
+                  <span key={fid} className="ds-caption rounded-full border border-border px-2 py-0.5 text-muted-foreground">
+                    {fieldName(fid)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+
+          {/* About */}
+          {supervisor.about && (
+            <section className="px-6 py-5">
+              <p className="ds-caption mb-2 uppercase tracking-[0.14em] text-muted-foreground">About</p>
+              <p className="ds-body text-foreground leading-relaxed">{supervisor.about}</p>
+            </section>
+          )}
+
+          {/* Research interests */}
+          <section className="border-t border-border px-6 py-5">
+            <p className="ds-caption mb-3 uppercase tracking-[0.14em] text-muted-foreground">Research interests</p>
+            <div className="flex flex-wrap gap-2">
+              {supervisor.researchInterests.map((r, i) => (
+                <span key={i} className="ds-caption rounded-full bg-secondary px-3 py-1 text-muted-foreground">
+                  {r}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          {/* Open topics */}
+          {supervisorTopics.length > 0 && (
+            <section className="border-t border-border px-6 py-5">
+              <p className="ds-caption mb-3 uppercase tracking-[0.14em] text-muted-foreground">
+                Open thesis topics
+              </p>
+              <div className="space-y-2">
+                {supervisorTopics.map((t) => (
+                  <div key={t.id} className="rounded-xl border border-border bg-background px-4 py-3">
+                    <p className="ds-label text-foreground">{t.title}</p>
+                    <p className="ds-small mt-1 text-muted-foreground line-clamp-2 leading-relaxed">{t.description}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {t.fieldIds.slice(0, 3).map((fid) => (
+                        <span key={fid} className="ds-caption rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{fieldName(fid)}</span>
+                      ))}
+                      {t.degrees.map((d) => (
+                        <span key={d} className="ds-caption rounded-full border border-border px-2 py-0.5 text-muted-foreground uppercase">{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Past students */}
+          {pastStudents.length > 0 && (
+            <section className="border-t border-border px-6 py-5">
+              <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+                <Users className="size-3" />
+                {pastStudents.length} student{pastStudents.length > 1 ? 's' : ''} supervised
+              </p>
+              <div className="space-y-2">
+                {pastStudents.map(({ student, project }) => (
+                  <div key={student.id} className="flex items-start gap-3 rounded-xl border border-border bg-background px-4 py-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground ds-badge font-semibold text-background">
+                      {student.firstName[0]}{student.lastName[0]}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="ds-label text-foreground">{student.firstName} {student.lastName}</p>
+                        <span className="ds-badge rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+                          {STATE_LABEL[project.state] ?? project.state}
+                        </span>
+                      </div>
+                      <p className="ds-caption mt-0.5 text-muted-foreground line-clamp-1">{project.title}</p>
+                      {student.about && (
+                        <p className="ds-caption mt-1 text-muted-foreground/70 line-clamp-2 leading-snug">{student.about}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      {connected.has(student.id) ? (
+                        <span className="ds-caption flex items-center gap-1 text-muted-foreground">
+                          <MessageSquare className="size-3" />
+                          Sent
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConnected((prev) => new Set([...prev, student.id]))}
+                          className="ds-caption flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-background transition-colors hover:bg-foreground/80"
+                        >
+                          <Send className="size-3" />
+                          Connect
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 ds-caption text-muted-foreground/50">
+                Connecting sends a direct message request. Contact details shared only if they accept.
+              </p>
+            </section>
+          )}
+
+          {/* Contact */}
+          <section className="border-t border-border px-6 py-5">
+            <p className="ds-caption mb-2 uppercase tracking-[0.14em] text-muted-foreground">Contact</p>
+            <a
+              href={`mailto:${supervisor.email}`}
+              className="ds-body flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Mail className="size-4 shrink-0" />
+              {supervisor.email}
+            </a>
+          </section>
+
+          <div className="h-6" />
+        </div>
+
+        {/* Action bar */}
+        <div className="flex shrink-0 items-center gap-3 border-t border-border px-6 py-4">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleShortlist() }}
+            disabled={!shortlisted && !canShortlist}
+            className={`flex items-center gap-2 rounded-full border px-4 py-2.5 ds-label transition-colors disabled:opacity-40 ${
+              shortlisted
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+            }`}
+          >
+            <Bookmark className={`size-4 ${shortlisted ? 'fill-current' : ''}`} />
+            {shortlisted ? 'Shortlisted' : 'Shortlist'}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDraftEmail(supervisor)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80"
+          >
+            <Mail className="size-4" />
+            Draft outreach email →
+          </button>
+        </div>
+      </motion.aside>
+    </>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────
 
 export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
   const { completeFeature, shortlistedSupervisorIds, toggleShortlistedSupervisor } = useThesisStore()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<'all' | 'shortlisted'>('all')
+  const [openSupervisor, setOpenSupervisor] = useState<Supervisor | null>(null)
 
   const shortlisted = new Set(shortlistedSupervisorIds)
   const toggleShortlist = (id: string) => toggleShortlistedSupervisor(id)
@@ -272,6 +378,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
   const handleDraftEmail = (s: Supervisor) => {
     completeFeature('supervisor-search')
     const prompt = `Help me write a cold outreach email to Professor ${s.lastName} at ${uniName(s.universityId)}. Their research interests are: ${s.researchInterests.slice(0, 3).join(', ')}. I want to ask if they'd be willing to supervise my thesis. Keep it concise, professional, and personalised.`
+    setOpenSupervisor(null)
     onOpenCoPilot(prompt)
   }
 
@@ -281,7 +388,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Find Supervisors</h2>
         <p className="ds-body mt-2 text-muted-foreground">
-          Browse {supervisors.length} academic supervisors across Swiss universities. Shortlist up to 3 — they carry forward into your Smart Match. Connect with students who have already worked with them.
+          Browse {supervisors.length} academic supervisors across Swiss universities. Shortlist up to 3 — they carry forward into your Smart Match. Click any card for full details.
         </p>
         {shortlisted.size > 0 && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-2">
@@ -321,7 +428,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
         />
       </div>
 
-      {/* Empty state */}
+      {/* Grid */}
       {tab === 'shortlisted' && shortlisted.size === 0 ? (
         <div className="rounded-2xl border border-dashed border-border py-16 text-center">
           <p className="ds-small text-muted-foreground/60">No supervisors shortlisted yet.</p>
@@ -340,11 +447,25 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
               shortlisted={shortlisted.has(s.id)}
               canShortlist={shortlisted.size < 3}
               onToggleShortlist={() => toggleShortlist(s.id)}
-              onDraftEmail={handleDraftEmail}
+              onOpen={setOpenSupervisor}
             />
           ))}
         </div>
       )}
+
+      {/* Detail drawer */}
+      <AnimatePresence>
+        {openSupervisor && (
+          <SupervisorDrawer
+            supervisor={openSupervisor}
+            shortlisted={shortlisted.has(openSupervisor.id)}
+            canShortlist={shortlisted.size < 3}
+            onToggleShortlist={() => toggleShortlist(openSupervisor.id)}
+            onDraftEmail={handleDraftEmail}
+            onClose={() => setOpenSupervisor(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

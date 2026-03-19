@@ -173,7 +173,7 @@ function TopicDrawer({
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl"
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl"
       >
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
