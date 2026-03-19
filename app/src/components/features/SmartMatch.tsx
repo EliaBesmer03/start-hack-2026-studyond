@@ -1,14 +1,19 @@
 /**
- * Smart Match — bundled Topic + Supervisor + Company match cards.
- * Topics favourited in TopicExplore appear first; remaining slots filled by AI.
- * Accepts also triggers supervisor matching on the same screen.
+ * Smart Match — combined Topic Explore bookmarks + Supervisor shortlist + AI recommendations.
+ * Bookmarked topics and shortlisted supervisors appear as combinable matches.
+ * AI-generated recommendation cards are shown below.
+ *
+ * Actions:
+ *   X            → Skip (not interested)
+ *   Shortlist    → Save to Shortlisted tab to revisit before Final Decision
+ *   Request Intro → Notify supervisor + company; no task completion (that happens at Final Decision)
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Briefcase, Building2, GraduationCap, Check, X, Bookmark,
-  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Search,
+  ChevronDown, ChevronUp, MapPin, Zap, BadgeCheck, Sparkles, Send,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -28,9 +33,10 @@ interface MatchCard {
   score: number
   reasons: string[]
   fromFavourite?: boolean
+  isAiRec?: boolean
 }
 
-type CardAction = 'accepted' | 'skipped' | 'saved'
+type CardAction = 'intro-requested' | 'skipped' | 'shortlisted'
 
 // ── Base curated match cards ──────────────────────────────────────────
 
@@ -122,15 +128,32 @@ function EmploymentBadge({ topic }: { topic: Topic }) {
 function MatchCardView({
   card,
   onAction,
+  isSaved,
+  onRemoveSaved,
 }: {
   card: MatchCard
   onAction: (id: string, action: CardAction) => void
+  isSaved?: boolean
+  onRemoveSaved?: (id: string) => void
 }) {
   const [whyOpen, setWhyOpen] = useState(false)
+  const [saveFlash, setSaveFlash] = useState(false)
   const { topic, supervisor, company, score, reasons } = card
 
   const expertId = topic.expertIds[0]
   const expert = expertId ? experts.find((e) => e.id === expertId) : null
+
+  const handleShortlist = () => {
+    onAction(card.id, 'shortlisted')
+    setSaveFlash(true)
+  }
+
+  useEffect(() => {
+    if (saveFlash) {
+      const t = setTimeout(() => setSaveFlash(false), 1200)
+      return () => clearTimeout(t)
+    }
+  }, [saveFlash])
 
   return (
     <motion.div
@@ -149,6 +172,12 @@ function MatchCardView({
             <span className="ds-caption flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
               <Bookmark className="size-3 fill-current" />
               Your pick
+            </span>
+          )}
+          {card.isAiRec && (
+            <span className="ds-caption flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">
+              <Sparkles className="size-3" />
+              AI rec
             </span>
           )}
         </div>
@@ -278,38 +307,56 @@ function MatchCardView({
 
       {/* Actions */}
       <div className="flex items-center gap-3 border-t border-border px-5 py-4">
+        {isSaved && onRemoveSaved ? (
+          <button
+            type="button"
+            onClick={() => onRemoveSaved(card.id)}
+            className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-red-300 hover:text-red-500"
+            title="Remove from shortlist"
+          >
+            <X className="size-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onAction(card.id, 'skipped')}
+            className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+            title="Not interested"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+        {!isSaved && (
+          <button
+            type="button"
+            onClick={handleShortlist}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-2 ds-caption transition-all duration-300 ${
+              saveFlash
+                ? 'border-foreground bg-foreground text-background scale-105'
+                : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+            }`}
+            title="Shortlist for Final Decision"
+          >
+            <Bookmark className={`size-3.5 transition-all ${saveFlash ? 'fill-current' : ''}`} />
+            Shortlist
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => onAction(card.id, 'skipped')}
-          className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-          title="Skip"
-        >
-          <X className="size-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onAction(card.id, 'saved')}
-          className="flex size-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-          title="Save for later"
-        >
-          <Bookmark className="size-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onAction(card.id, 'accepted')}
+          onClick={() => onAction(card.id, 'intro-requested')}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 ds-label text-background transition-colors hover:bg-foreground/80"
         >
-          <Check className="size-4" />
-          Accept match
+          <Send className="size-4" />
+          Request Intro
         </button>
       </div>
     </motion.div>
   )
 }
 
-// ── Accepted toast ────────────────────────────────────────────────────
+// ── Intro requested toast ─────────────────────────────────────────────
 
-function AcceptedToast({ topic, supervisor, company }: { topic: Topic; supervisor: Supervisor | null; company: Company | null }) {
+function IntroRequestedToast({ topic, supervisor, company }: { topic: Topic; supervisor: Supervisor | null; company: Company | null }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -318,23 +365,22 @@ function AcceptedToast({ topic, supervisor, company }: { topic: Topic; superviso
     >
       <div className="flex items-center gap-3 px-4 py-3">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-          <Check className="size-3.5" strokeWidth={2.5} />
+          <Send className="size-3.5" strokeWidth={2} />
         </span>
         <div>
-          <p className="ds-label text-foreground">Match accepted</p>
+          <p className="ds-label text-foreground">Intro request sent</p>
           <p className="ds-caption text-muted-foreground">
-            We'll propose an intro meeting for "{topic.title}".
+            Your interest in "{topic.title}" has been noted.
           </p>
         </div>
       </div>
       {(supervisor || company) && (
         <div className="border-t border-border bg-secondary/60 px-4 py-2.5">
           <p className="ds-caption text-muted-foreground">
-            Next step: Both{' '}
             {supervisor && <span className="font-medium text-foreground">{supervisor.lastName}</span>}
             {supervisor && company && ' and '}
             {company && <span className="font-medium text-foreground">{company.name}</span>}
-            {' '}will receive an intro request.
+            {' '}will receive an intro request. You still pick your final combo in the Final Decision step.
           </p>
         </div>
       )}
@@ -342,135 +388,96 @@ function AcceptedToast({ topic, supervisor, company }: { topic: Topic; superviso
   )
 }
 
-// ── Inline supervisor search ──────────────────────────────────────────
-
-function SupervisorSearchPanel() {
-  const [query, setQuery] = useState('')
-  const filtered = supervisors.filter((s) => {
-    const q = query.toLowerCase()
-    return (
-      !q ||
-      s.firstName.toLowerCase().includes(q) ||
-      s.lastName.toLowerCase().includes(q) ||
-      s.researchInterests.some((r) => r.toLowerCase().includes(q))
-    )
-  }).slice(0, 6)
-
-  return (
-    <div className="mt-8">
-      <div className="mb-4 flex items-center gap-2 border-t border-border pt-8">
-        <GraduationCap className="size-4 text-muted-foreground" />
-        <h3 className="ds-title-sm text-foreground">Find a supervisor directly</h3>
-      </div>
-      <p className="ds-small mb-4 text-muted-foreground">
-        Can't find a match you like? Browse supervisors and shortlist the ones aligned with your research direction.
-      </p>
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name or research interest…"
-          className="ds-body w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
-        />
-      </div>
-      <div className="space-y-2">
-        {filtered.map((sup) => (
-          <div key={sup.id} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-foreground/20">
-            <div className="min-w-0">
-              <p className="ds-label text-foreground">{sup.title} {sup.firstName} {sup.lastName}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {sup.researchInterests.slice(0, 3).map((r, i) => (
-                  <span key={i} className="ds-caption rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{r}</span>
-                ))}
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-1">
-              {sup.fieldIds.slice(0, 2).map((fid) => {
-                const f = fields.find((fi) => fi.id === fid)
-                return f ? (
-                  <span key={fid} className="ds-caption rounded-full border border-border px-2 py-0.5 text-muted-foreground">{f.name}</span>
-                ) : null
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────
 
 export function SmartMatch() {
-  const { profile, completeFeature, favouriteTopicIds, addAcceptedExpert } = useThesisStore()
+  const {
+    profile, addAcceptedExpert, favouriteTopicIds,
+    shortlistedSupervisorIds, toggleSavedMatch, savedMatchIds,
+  } = useThesisStore()
 
-  // Build match cards: favourited topics first (with their matched supervisor/company),
-  // remaining slots filled from base cards not already covered, always sorted by score desc
+  // Build match cards: favourite topics × shortlisted supervisors first, then AI recs
   const cards = useMemo<MatchCard[]>(() => {
-    const favouriteCards: MatchCard[] = favouriteTopicIds.flatMap((topicId, i) => {
+    // 1) Favourite topic + shortlisted supervisor combos
+    const combos: MatchCard[] = []
+    for (const topicId of favouriteTopicIds) {
       const topic = topics.find((t) => t.id === topicId)
-      if (!topic) return []
-      // Try to find a base card for this topic
-      const base = BASE_MATCH_CARDS.find((c) => c.topic.id === topicId)
-      if (base) return [{ ...base, fromFavourite: true }]
-      // Build a synthetic card
-      const supervisor = topic.supervisorIds[0] ? supervisors.find((s) => s.id === topic.supervisorIds[0]) ?? null : null
-      const company = topic.companyId ? companies.find((c) => c.id === topic.companyId) ?? null : null
-      return [{
-        id: `fav-${topicId}`,
-        topic,
-        supervisor,
-        company,
-        score: 88 - i * 4,
-        fromFavourite: true,
-        reasons: [
-          'You bookmarked this topic in your exploration phase.',
-          supervisor ? `${supervisor.title} ${supervisor.lastName} researches directly aligned topics.` : 'Supervisor TBD based on your research direction.',
-          company ? `${company.name} is looking for thesis students in this area.` : 'Academic topic — strong for PhD pathways.',
-        ],
-      }]
-    })
+      if (!topic) continue
+      if (shortlistedSupervisorIds.length > 0) {
+        for (const supId of shortlistedSupervisorIds) {
+          const sup = supervisors.find((s) => s.id === supId) ?? null
+          const company = topic.companyId ? companies.find((c) => c.id === topic.companyId) ?? null : null
+          combos.push({
+            id: `combo-${topicId}-${supId}`,
+            topic,
+            supervisor: sup,
+            company,
+            score: 90,
+            fromFavourite: true,
+            reasons: [
+              'You bookmarked this topic and shortlisted this supervisor.',
+              sup ? `${sup.title} ${sup.lastName} researches directly aligned topics.` : 'Supervisor TBD.',
+              company ? `${company.name} is looking for thesis students in this area.` : 'Academic topic — strong for PhD pathways.',
+            ],
+          })
+        }
+      } else {
+        // Favourite topic, no supervisors shortlisted yet
+        const base = BASE_MATCH_CARDS.find((c) => c.topic.id === topicId)
+        const supervisor = base?.supervisor ?? (topic.supervisorIds[0] ? supervisors.find((s) => s.id === topic.supervisorIds[0]) ?? null : null)
+        const company = base?.company ?? (topic.companyId ? companies.find((c) => c.id === topic.companyId) ?? null : null)
+        combos.push({
+          id: `fav-${topicId}`,
+          topic,
+          supervisor,
+          company,
+          score: 88,
+          fromFavourite: true,
+          reasons: base?.reasons ?? [
+            'You bookmarked this topic in your exploration phase.',
+            supervisor ? `${supervisor.title} ${supervisor.lastName} researches directly aligned topics.` : 'Supervisor TBD.',
+            company ? `${company.name} is looking for thesis students in this area.` : 'Academic topic.',
+          ],
+        })
+      }
+    }
 
-    // Fill remaining with base cards not already included, sorted desc
-    const favouritedTopicIds = new Set(favouriteTopicIds)
-    const remaining = BASE_MATCH_CARDS
-      .filter((c) => !favouritedTopicIds.has(c.topic.id))
+    // 2) AI-generated recs (base cards not already covered)
+    const coveredTopicIds = new Set(favouriteTopicIds)
+    const aiRecs = BASE_MATCH_CARDS
+      .filter((c) => !coveredTopicIds.has(c.topic.id))
+      .map((c) => ({ ...c, isAiRec: true }))
       .sort((a, b) => b.score - a.score)
 
-    // Merge: favourites first (sorted by score), then remaining
-    const merged = [
-      ...favouriteCards.sort((a, b) => b.score - a.score),
-      ...remaining,
-    ]
-
-    return merged
-  }, [favouriteTopicIds])
+    return [...combos.sort((a, b) => b.score - a.score), ...aiRecs]
+  }, [favouriteTopicIds, shortlistedSupervisorIds])
 
   const [actions, setActions] = useState<Record<string, CardAction>>({})
-  const [saved, setSaved] = useState<MatchCard[]>([])
-  const [tab, setTab] = useState<'matches' | 'saved'>('matches')
+  const [tab, setTab] = useState<'matches' | 'shortlisted'>('matches')
+
+  const shortlistedCards = cards.filter((c) => savedMatchIds.includes(c.id))
 
   const handleAction = (id: string, action: CardAction) => {
     setActions((prev) => ({ ...prev, [id]: action }))
-    if (action === 'saved') {
-      const card = cards.find((c) => c.id === id)
-      if (card) setSaved((prev) => [...prev, card])
+    if (action === 'shortlisted') {
+      toggleSavedMatch(id)
     }
-    if (action === 'accepted') {
+    if (action === 'intro-requested') {
       const card = cards.find((c) => c.id === id)
-      // Propagate expert IDs to InterviewPartners
+      // Propagate expert IDs to Interview Partners, but don't complete the task —
+      // that happens only when the user commits in Final Decision
       if (card) {
         card.topic.expertIds.forEach((eid) => addAcceptedExpert(eid))
       }
-      completeFeature('smart-match')
-      completeFeature('topic-match')
     }
   }
 
-  const activeCards = cards.filter((c) => !actions[c.id] || actions[c.id] === 'saved')
-  const dismissed = cards.filter((c) => actions[c.id] === 'skipped' || actions[c.id] === 'accepted')
+  const handleRemoveShortlisted = (id: string) => {
+    toggleSavedMatch(id)
+  }
+
+  const activeCards = cards.filter((c) => !actions[c.id] || actions[c.id] === 'shortlisted')
+  const dismissed = cards.filter((c) => actions[c.id] === 'skipped' || actions[c.id] === 'intro-requested')
 
   const fieldAnswer = profile.answers.find((a) => a.questionIndex === 1)?.value
   const FIELD_LABEL: Record<string, string> = {
@@ -481,14 +488,18 @@ export function SmartMatch() {
   }
   const fieldLabel = fieldAnswer ? FIELD_LABEL[fieldAnswer] : null
 
+  const hasFavourites = favouriteTopicIds.length > 0
+  const hasSupervisors = shortlistedSupervisorIds.length > 0
+
   return (
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Smart Match</h2>
         <p className="ds-body mt-2 text-muted-foreground">
-          Bundled matches — topic, supervisor, and company selected together based on your profile.
-          Accept to trigger a three-way intro. Your bookmarked topics appear first.
+          Bundled matches combining your bookmarked topics, shortlisted supervisors, and AI recommendations.
+          <strong className="text-foreground"> Shortlist</strong> to save for Final Decision.
+          <strong className="text-foreground"> Request Intro</strong> to notify the supervisor and company — you still pick your final combo later.
         </p>
         {fieldLabel && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2">
@@ -498,11 +509,23 @@ export function SmartMatch() {
             </p>
           </div>
         )}
+
+        {/* Inputs summary */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className={`ds-caption flex items-center gap-1 rounded-full border px-2.5 py-1 ${hasFavourites ? 'border-foreground/30 text-foreground' : 'border-border text-muted-foreground/50'}`}>
+            <Bookmark className={`size-3 ${hasFavourites ? 'fill-current' : ''}`} />
+            {favouriteTopicIds.length} topic{favouriteTopicIds.length !== 1 ? 's' : ''} bookmarked
+          </span>
+          <span className={`ds-caption flex items-center gap-1 rounded-full border px-2.5 py-1 ${hasSupervisors ? 'border-foreground/30 text-foreground' : 'border-border text-muted-foreground/50'}`}>
+            <GraduationCap className="size-3" />
+            {shortlistedSupervisorIds.length} supervisor{shortlistedSupervisorIds.length !== 1 ? 's' : ''} shortlisted
+          </span>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-xl bg-secondary p-1">
-        {(['matches', 'saved'] as const).map((t) => (
+        {(['matches', 'shortlisted'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -511,23 +534,53 @@ export function SmartMatch() {
               tab === t ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t === 'matches' ? `Matches (${activeCards.length})` : `Saved (${saved.length})`}
+            {t === 'matches' ? `Matches (${activeCards.length})` : `Shortlisted (${shortlistedCards.length})`}
           </button>
         ))}
       </div>
 
       {tab === 'matches' && (
         <div className="space-y-4">
+          {/* Section: Your combos */}
+          {cards.filter((c) => c.fromFavourite).length > 0 && (
+            <div className="mb-1">
+              <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+                <Bookmark className="size-3 fill-current" />
+                Your combinations
+              </p>
+            </div>
+          )}
+
           <AnimatePresence mode="popLayout">
-            {activeCards.map((card) => (
+            {activeCards.filter((c) => c.fromFavourite).map((card) => (
               <div key={card.id}>
-                <MatchCardView card={card} onAction={handleAction} />
-                {actions[card.id] === 'accepted' && (
-                  <AcceptedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />
+                <MatchCardView card={card} onAction={handleAction} isSaved={savedMatchIds.includes(card.id)} />
+                {actions[card.id] === 'intro-requested' && (
+                  <IntroRequestedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />
                 )}
               </div>
             ))}
           </AnimatePresence>
+
+          {/* Section: AI recommendations */}
+          {activeCards.filter((c) => c.isAiRec).length > 0 && (
+            <div className="mt-6">
+              <p className="ds-caption mb-3 flex items-center gap-1.5 uppercase tracking-[0.14em] text-muted-foreground">
+                <Sparkles className="size-3" />
+                AI recommendations
+              </p>
+              <AnimatePresence mode="popLayout">
+                {activeCards.filter((c) => c.isAiRec).map((card) => (
+                  <div key={card.id} className="mb-4">
+                    <MatchCardView card={card} onAction={handleAction} isSaved={savedMatchIds.includes(card.id)} />
+                    {actions[card.id] === 'intro-requested' && (
+                      <IntroRequestedToast topic={card.topic} supervisor={card.supervisor} company={card.company} />
+                    )}
+                  </div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
 
           {activeCards.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border py-16 text-center">
@@ -537,21 +590,36 @@ export function SmartMatch() {
               </p>
             </div>
           )}
-
-          <SupervisorSearchPanel />
         </div>
       )}
 
-      {tab === 'saved' && (
+      {tab === 'shortlisted' && (
         <div className="space-y-4">
-          {saved.length === 0 ? (
+          {shortlistedCards.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border py-16 text-center">
-              <p className="ds-small text-muted-foreground/60">No saved matches yet.</p>
+              <p className="ds-small text-muted-foreground/60">No matches shortlisted yet.</p>
+              <p className="ds-caption mt-1 text-muted-foreground/40">
+                Click "Shortlist" on a match to save it here for Final Decision.
+              </p>
             </div>
           ) : (
-            saved.map((card) => (
-              <MatchCardView key={card.id} card={card} onAction={handleAction} />
-            ))
+            <>
+              <div className="rounded-xl border border-border bg-secondary/40 px-4 py-3">
+                <p className="ds-caption text-muted-foreground">
+                  These are saved for your <span className="font-medium text-foreground">Final Decision</span> step.
+                  Remove any you've changed your mind about.
+                </p>
+              </div>
+              {shortlistedCards.map((card) => (
+                <MatchCardView
+                  key={card.id}
+                  card={card}
+                  onAction={handleAction}
+                  isSaved
+                  onRemoveSaved={handleRemoveShortlisted}
+                />
+              ))}
+            </>
           )}
         </div>
       )}

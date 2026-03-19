@@ -17,6 +17,8 @@ import { TopicExplore } from '@/components/features/TopicExplore'
 import { SupervisorSearch } from '@/components/features/SupervisorSearch'
 import { CoPilotFeature } from '@/components/features/CoPilotFeature'
 import { ThesisAlumni } from '@/components/features/ThesisAlumni'
+import { FinalDecision } from '@/components/features/FinalDecision'
+import { CreateTimeline } from '@/components/features/CreateTimeline'
 
 /* ── Stage celebration overlay ─────────────────────────────────────── */
 
@@ -195,8 +197,10 @@ const FEATURE_LABELS: Record<FeatureId, string> = {
   'profile-setup':     'Thesis Profile',
   'topic-explore':     'Explore Topics',
   'topic-match':       'Smart Match',
-  'smart-match':       'Smart Match',
+  'smart-match':       'Review Matches',
   'supervisor-search': 'Find Supervisors',
+  'final-decision':    'Final Decision',
+  'create-timeline':   'Create Timeline',
   'copilot-planning':  'Planning Co-Pilot',
   'methodology':       'Methodology Guide',
   'copilot-execution': 'Execution Co-Pilot',
@@ -223,6 +227,8 @@ function FeaturePane({
   if (featureId === 'profile-setup') return <ProfileSetup />
   if (featureId === 'topic-explore') return <TopicExplore onOpenCoPilot={onOpenCoPilot} />
   if (featureId === 'supervisor-search') return <SupervisorSearch onOpenCoPilot={onOpenCoPilot} />
+  if (featureId === 'final-decision') return <FinalDecision />
+  if (featureId === 'create-timeline') return <CreateTimeline />
 
   // Co-Pilot feature stubs
   const coPilotFeatures: Partial<Record<FeatureId, { title: string; description: string; starters: string[] }>> = {

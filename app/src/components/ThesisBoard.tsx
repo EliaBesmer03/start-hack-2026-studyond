@@ -1,10 +1,21 @@
 import { useState, useEffect } from 'react'
-import { ArrowRight, Check, Filter, AlertCircle, X } from 'lucide-react'
+import { ArrowRight, Check, Filter, AlertCircle, X, Lock } from 'lucide-react'
 import { useThesisStore } from '@/stores/thesis-store'
 import type { Task, TaskStatus } from '@/stores/thesis-store'
 import { STAGES } from '@/types/thesis'
 import type { ThesisStage } from '@/types/thesis'
 import type { FeatureId } from '@/components/JourneyMapSidebar'
+
+const STAGE_ORDER_IDS = STAGES.map((s) => s.id) as ThesisStage[]
+
+/** Returns true if all tasks in the stage BEFORE stageId are done */
+function isPreviousStageDone(stageId: ThesisStage, allTasks: Task[]): boolean {
+  const idx = STAGE_ORDER_IDS.indexOf(stageId)
+  if (idx <= 0) return true // orientation has no previous stage
+  const prevStage = STAGE_ORDER_IDS[idx - 1]
+  const prevTasks = allTasks.filter((t) => t.stageId === prevStage)
+  return prevTasks.length === 0 || prevTasks.every((t) => t.status === 'done')
+}
 
 /* ── constants ─────────────────────────────────────────────────────── */
 
@@ -27,9 +38,11 @@ const STAGE_TAG: Record<ThesisStage, { label: string; cls: string }> = {
 function TaskCard({
   task,
   onOpen,
+  locked,
 }: {
   task: Task
   onOpen: (featureId: FeatureId) => void
+  locked?: boolean
 }) {
   const { dismissNudge } = useThesisStore()
   const tag = STAGE_TAG[task.stageId]
@@ -38,7 +51,7 @@ function TaskCard({
   return (
     <div
       className={`flex flex-col gap-3 rounded-xl border bg-background p-4 transition-shadow duration-150 ${
-        isDone ? 'opacity-60' : 'hover:shadow-md hover:border-foreground/20'
+        isDone ? 'opacity-60' : locked ? 'opacity-50' : 'hover:shadow-md hover:border-foreground/20'
       }`}
     >
       {/* Stage tag */}
@@ -51,6 +64,11 @@ function TaskCard({
             <Check className="size-3 text-background" strokeWidth={2.5} />
           </span>
         )}
+        {locked && !isDone && (
+          <span className="flex size-5 items-center justify-center rounded-full bg-secondary border border-border">
+            <Lock className="size-3 text-muted-foreground" />
+          </span>
+        )}
       </div>
 
       {/* Title + description */}
@@ -58,15 +76,20 @@ function TaskCard({
         <p className={`ds-title-cards leading-snug ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
           {task.title}
         </p>
-        {!isDone && (
+        {!isDone && !locked && (
           <p className="ds-small mt-1 text-muted-foreground leading-snug">
             {task.description}
+          </p>
+        )}
+        {locked && !isDone && (
+          <p className="ds-small mt-1 text-muted-foreground/60 leading-snug">
+            Complete all previous stage tasks to unlock.
           </p>
         )}
       </div>
 
       {/* Nudge banner */}
-      {!isDone && task.nudge && (
+      {!isDone && !locked && task.nudge && (
         <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary px-3 py-2">
           <AlertCircle className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
           <p className="ds-caption flex-1 text-foreground leading-snug">{task.nudge}</p>
@@ -82,7 +105,7 @@ function TaskCard({
       )}
 
       {/* Open feature button */}
-      {!isDone && (
+      {!isDone && !locked && (
         <div className="pt-1">
           <button
             type="button"
@@ -103,10 +126,12 @@ function TaskCard({
 function KanbanColumn({
   column,
   tasks,
+  lockedStages,
   onOpen,
 }: {
   column: { id: TaskStatus; label: string }
   tasks: Task[]
+  lockedStages: Set<ThesisStage>
   onOpen: (featureId: FeatureId) => void
 }) {
   const isInProgress = column.id === 'in-progress'
@@ -132,7 +157,12 @@ function KanbanColumn({
           </div>
         ) : (
           tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={onOpen} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              onOpen={onOpen}
+              locked={lockedStages.has(task.stageId)}
+            />
           ))
         )}
       </div>
@@ -249,6 +279,11 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
 
   const filteredTasks = tasks.filter((t) => selectedStages.has(t.stageId))
 
+  // Compute which stages are locked (previous stage not fully done)
+  const lockedStages = new Set<ThesisStage>(
+    allStageIds.filter((id) => !isPreviousStageDone(id, tasks))
+  )
+
   return (
     <div className="flex min-h-full flex-col">
       {/* Header + filter */}
@@ -297,6 +332,7 @@ export function ThesisBoard({ onFeatureOpen }: ThesisBoardProps) {
             key={col.id}
             column={col}
             tasks={filteredTasks.filter((t) => t.status === col.id)}
+            lockedStages={lockedStages}
             onOpen={onFeatureOpen}
           />
         ))}

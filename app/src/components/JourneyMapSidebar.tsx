@@ -13,6 +13,8 @@ export type FeatureId =
   | 'topic-match'
   | 'smart-match'
   | 'supervisor-search'
+  | 'final-decision'
+  | 'create-timeline'
   | 'copilot-planning'
   | 'methodology'
   | 'copilot-execution'
@@ -33,11 +35,13 @@ const STAGE_FEATURES: Record<ThesisStage, FeatureItem[]> = {
     { id: 'topic-explore',   label: 'Explore Topics',   description: 'Browse curated topics and company briefs' },
   ],
   'topic-discovery': [
-    { id: 'topic-match',      label: 'Topic Match',       description: 'Get AI-matched topics based on your profile' },
-    { id: 'smart-match',      label: 'Smart Match',       description: 'Bundled topic + supervisor + company matches' },
-    { id: 'supervisor-search', label: 'Find Supervisors', description: 'Search and reach out to supervisors' },
+    { id: 'topic-match',       label: 'Smart Match',       description: 'Bookmark topics and build AI-matched combos' },
+    { id: 'supervisor-search', label: 'Find Supervisors',  description: 'Shortlist up to 3 supervisors for Smart Match' },
+    { id: 'smart-match',       label: 'Review Matches',    description: 'Bundled topic + supervisor + company matches' },
+    { id: 'final-decision',    label: 'Final Decision',    description: 'Commit to your final topic/supervisor/company combo' },
   ],
   'supervisor-search': [
+    { id: 'create-timeline',  label: 'Create Timeline',   description: 'Plan your thesis timeline with drag & drop' },
     { id: 'copilot-planning', label: 'Planning Co-Pilot', description: 'AI guidance on methodology and proposal' },
     { id: 'methodology',      label: 'Methodology Guide', description: 'Qualitative vs. quantitative decision support' },
   ],

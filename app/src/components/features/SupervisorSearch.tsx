@@ -144,10 +144,11 @@ function PastStudentsPanel({ supervisor }: { supervisor: Supervisor }) {
 // ── Supervisor card ───────────────────────────────────────────────────
 
 function SupervisorCard({
-  supervisor, shortlisted, onToggleShortlist, onDraftEmail,
+  supervisor, shortlisted, canShortlist, onToggleShortlist, onDraftEmail,
 }: {
   supervisor: Supervisor
   shortlisted: boolean
+  canShortlist: boolean
   onToggleShortlist: () => void
   onDraftEmail: (s: Supervisor) => void
 }) {
@@ -177,8 +178,9 @@ function SupervisorCard({
             <button
               type="button"
               onClick={onToggleShortlist}
-              title={shortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
-              className={`flex size-7 items-center justify-center rounded-full border transition-colors ${
+              disabled={!shortlisted && !canShortlist}
+              title={shortlisted ? 'Remove from shortlist' : canShortlist ? 'Add to shortlist (max 3)' : 'Max 3 supervisors shortlisted'}
+              className={`flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-30 ${
                 shortlisted
                   ? 'border-foreground bg-foreground text-background'
                   : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
@@ -245,17 +247,12 @@ function SupervisorCard({
 }
 
 export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
-  const { completeFeature } = useThesisStore()
+  const { completeFeature, shortlistedSupervisorIds, toggleShortlistedSupervisor } = useThesisStore()
   const [query, setQuery] = useState('')
-  const [shortlisted, setShortlisted] = useState<Set<string>>(new Set())
   const [tab, setTab] = useState<'all' | 'shortlisted'>('all')
 
-  const toggleShortlist = (id: string) =>
-    setShortlisted((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+  const shortlisted = new Set(shortlistedSupervisorIds)
+  const toggleShortlist = (id: string) => toggleShortlistedSupervisor(id)
 
   const pool = tab === 'shortlisted'
     ? supervisors.filter((s) => shortlisted.has(s.id))
@@ -284,8 +281,16 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
       <div className="mb-6">
         <h2 className="ds-title-md text-foreground">Find Supervisors</h2>
         <p className="ds-body mt-2 text-muted-foreground">
-          Browse {supervisors.length} academic supervisors across Swiss universities. Shortlist the ones you like, then connect with students who have already worked with them.
+          Browse {supervisors.length} academic supervisors across Swiss universities. Shortlist up to 3 — they carry forward into your Smart Match. Connect with students who have already worked with them.
         </p>
+        {shortlisted.size > 0 && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-2">
+            <Bookmark className="size-3.5 shrink-0 fill-current text-foreground" />
+            <p className="ds-caption text-foreground">
+              <span className="font-medium">{shortlisted.size}/3</span> supervisor{shortlisted.size !== 1 ? 's' : ''} shortlisted — carried forward to Smart Match
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -333,6 +338,7 @@ export function SupervisorSearch({ onOpenCoPilot }: SupervisorSearchProps) {
               key={s.id}
               supervisor={s}
               shortlisted={shortlisted.has(s.id)}
+              canShortlist={shortlisted.size < 3}
               onToggleShortlist={() => toggleShortlist(s.id)}
               onDraftEmail={handleDraftEmail}
             />

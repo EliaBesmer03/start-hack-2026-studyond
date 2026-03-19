@@ -46,42 +46,26 @@ const DEFAULT_TASKS: Task[] = [
     featureId: 'topic-explore',
     status: 'ready',
   },
-  {
-    id: 'o3',
-    stageId: 'orientation',
-    title: 'Read 2 Company Topic Briefs',
-    description: 'Understand what companies are looking for and how collaboration works.',
-    featureId: 'topic-explore',
-    status: 'ready',
-  },
 
   // ── Topic & Supervisor ───────────────────────────────────────────
   {
     id: 't1',
     stageId: 'topic-discovery',
     title: 'Shortlist 3 Topics',
-    description: 'Use the AI matcher to narrow down to your top 3 and understand why they fit.',
-    featureId: 'topic-match',
+    description: 'Bookmark up to 3 favourite topics — they carry forward into your Smart Match.',
+    featureId: 'smart-match',
     status: 'ready',
   },
   {
     id: 't2',
     stageId: 'topic-discovery',
-    title: 'Review Your Smart Matches',
-    description: 'Accept, skip, or save bundled topic + supervisor + company matches curated for you.',
-    featureId: 'smart-match',
-    status: 'ready',
-  },
-  {
-    id: 't3',
-    stageId: 'topic-discovery',
     title: 'Identify 3 Potential Supervisors',
-    description: 'Search professors aligned with your research direction.',
+    description: 'Search professors aligned with your research direction and shortlist up to 3.',
     featureId: 'supervisor-search',
     status: 'ready',
   },
   {
-    id: 't4',
+    id: 't3',
     stageId: 'topic-discovery',
     title: 'Send First Supervisor Outreach',
     description: 'Draft and send a personalised email — Co-Pilot can help you write it.',
@@ -89,10 +73,34 @@ const DEFAULT_TASKS: Task[] = [
     status: 'ready',
     nudge: 'Outreach sent over 2 weeks ago with no reply — want Co-Pilot to help you follow up?',
   },
+  {
+    id: 't4',
+    stageId: 'topic-discovery',
+    title: 'Review Your Smart Matches',
+    description: 'Accept, skip, or save bundled topic + supervisor + company matches curated for you.',
+    featureId: 'smart-match',
+    status: 'ready',
+  },
+  {
+    id: 't5',
+    stageId: 'topic-discovery',
+    title: 'Select Your Final Combination',
+    description: 'Commit to your final topic, supervisor, and company combination to move forward.',
+    featureId: 'final-decision',
+    status: 'ready',
+  },
 
   // ── Planning ─────────────────────────────────────────────────────
   {
     id: 'p1',
+    stageId: 'supervisor-search',
+    title: 'Create Your Thesis Timeline',
+    description: 'Drag and drop key milestones, writing phases, and outreach onto your calendar.',
+    featureId: 'create-timeline',
+    status: 'ready',
+  },
+  {
+    id: 'p2',
     stageId: 'supervisor-search',
     title: 'Confirm Research Methodology',
     description: 'Qualitative vs quantitative — Co-Pilot will help you decide based on your topic.',
@@ -100,7 +108,7 @@ const DEFAULT_TASKS: Task[] = [
     status: 'ready',
   },
   {
-    id: 'p2',
+    id: 'p3',
     stageId: 'supervisor-search',
     title: 'Draft Thesis Proposal',
     description: 'AI-guided walkthrough: research question, methodology, and timeline.',
@@ -108,7 +116,7 @@ const DEFAULT_TASKS: Task[] = [
     status: 'ready',
   },
   {
-    id: 'p3',
+    id: 'p4',
     stageId: 'supervisor-search',
     title: 'Agree Milestones with Supervisor',
     description: 'Align on key deadlines — submission dates, check-ins, draft reviews.',
@@ -117,7 +125,7 @@ const DEFAULT_TASKS: Task[] = [
     nudge: 'Your planning deadline passed 3 days ago — want Co-Pilot to help you catch up?',
   },
   {
-    id: 'p4',
+    id: 'p5',
     stageId: 'supervisor-search',
     title: 'Register Thesis at University',
     description: 'Complete the official registration before your university deadline.',
@@ -186,6 +194,20 @@ const DEFAULT_TASKS: Task[] = [
   },
 ]
 
+export interface FinalDecision {
+  topicId: string
+  supervisorId: string
+  companyId: string | null
+}
+
+export interface TimelineEntry {
+  id: string
+  label: string
+  category: 'milestone' | 'outreach' | 'writing' | 'research' | 'admin'
+  week: number        // 1-based week offset from thesis start
+  duration: number    // number of weeks
+}
+
 interface ThesisState {
   profile: ThesisProfile
   tasks: Task[]
@@ -193,8 +215,12 @@ interface ThesisState {
   thesisNotes: string[]
   universityGuidelines: string
   celebrateStage: ThesisStage | null
-  favouriteTopicIds: string[]       // up to 3 topics bookmarked in TopicExplore
-  acceptedExpertIds: string[]       // experts matched/accepted in SmartMatch
+  favouriteTopicIds: string[]           // up to 3 topics bookmarked in TopicExplore
+  acceptedExpertIds: string[]           // experts matched/accepted in SmartMatch
+  shortlistedSupervisorIds: string[]    // up to 3 supervisors shortlisted
+  savedMatchIds: string[]               // match card ids saved by user
+  finalDecision: FinalDecision | null   // final topic/company/supervisor combo
+  timeline: TimelineEntry[]             // user-built thesis timeline
 
   setStage: (stage: ThesisStage) => void
   setConcern: (concern: string) => void
@@ -212,6 +238,10 @@ interface ThesisState {
   clearCelebration: () => void
   toggleFavouriteTopic: (topicId: string) => void
   addAcceptedExpert: (expertId: string) => void
+  toggleShortlistedSupervisor: (supervisorId: string) => void
+  toggleSavedMatch: (matchId: string) => void
+  setFinalDecision: (decision: FinalDecision) => void
+  setTimeline: (entries: TimelineEntry[]) => void
 }
 
 const initialProfile: ThesisProfile = {
@@ -234,6 +264,10 @@ export const useThesisStore = create<ThesisState>()(
       celebrateStage: null,
       favouriteTopicIds: [],
       acceptedExpertIds: [],
+      shortlistedSupervisorIds: [],
+      savedMatchIds: [],
+      finalDecision: null,
+      timeline: [],
 
       setStage: (stage) =>
         set((s) => ({ profile: { ...s.profile, stage } })),
@@ -265,6 +299,10 @@ export const useThesisStore = create<ThesisState>()(
           celebrateStage: null,
           favouriteTopicIds: [],
           acceptedExpertIds: [],
+          shortlistedSupervisorIds: [],
+          savedMatchIds: [],
+          finalDecision: null,
+          timeline: [],
         }),
       completeFeature: (featureId) =>
         set((s) => {
@@ -323,7 +361,26 @@ export const useThesisStore = create<ThesisState>()(
             ? s.acceptedExpertIds
             : [...s.acceptedExpertIds, expertId],
         })),
+      toggleShortlistedSupervisor: (supervisorId) =>
+        set((s) => {
+          const ids = s.shortlistedSupervisorIds
+          if (ids.includes(supervisorId)) {
+            return { shortlistedSupervisorIds: ids.filter((id) => id !== supervisorId) }
+          }
+          if (ids.length >= 3) return s
+          return { shortlistedSupervisorIds: [...ids, supervisorId] }
+        }),
+      toggleSavedMatch: (matchId) =>
+        set((s) => ({
+          savedMatchIds: s.savedMatchIds.includes(matchId)
+            ? s.savedMatchIds.filter((id) => id !== matchId)
+            : [...s.savedMatchIds, matchId],
+        })),
+      setFinalDecision: (decision) =>
+        set({ finalDecision: decision }),
+      setTimeline: (entries) =>
+        set({ timeline: entries }),
     }),
-    { name: 'studyond-thesis-v2' },
+    { name: 'studyond-thesis-v3' },
   ),
 )
