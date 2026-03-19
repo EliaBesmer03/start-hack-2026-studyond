@@ -170,7 +170,7 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset }: J
                           <div className="min-w-0 flex-1">
                             <span
                               className={`ds-label block leading-tight ${
-                                done ? 'text-muted-foreground line-through' : isFeatureActive ? 'text-foreground' : 'text-foreground/80'
+                                done ? 'text-foreground' : isFeatureActive ? 'text-foreground' : 'text-foreground/80'
                               }`}
                             >
                               {feat.label}

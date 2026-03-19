@@ -51,7 +51,7 @@ function TaskCard({
   return (
     <div
       className={`flex flex-col gap-3 rounded-xl border bg-background p-4 transition-shadow duration-150 ${
-        isDone ? 'opacity-60' : locked ? 'opacity-50' : 'hover:shadow-md hover:border-foreground/20'
+        locked && !isDone ? 'opacity-50' : 'hover:shadow-md hover:border-foreground/20'
       }`}
     >
       {/* Stage tag */}
@@ -73,7 +73,7 @@ function TaskCard({
 
       {/* Title + description */}
       <div>
-        <p className={`ds-title-cards leading-snug ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+        <p className="ds-title-cards leading-snug text-foreground">
           {task.title}
         </p>
         {!isDone && !locked && (

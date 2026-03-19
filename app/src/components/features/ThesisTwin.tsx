@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check, Flag, MessageSquare, Plus, Sparkles,
-  Target, Trophy, Users,
+  Target, Trophy, Users, RefreshCw, AlertTriangle,
 } from 'lucide-react'
 import { students, fields, byId, type Student } from '@/data/mock'
 import { useThesisStore } from '@/stores/thesis-store'
@@ -115,7 +115,7 @@ function OptInScreen({ onOptIn }: { onOptIn: () => void }) {
       <button
         type="button"
         onClick={onOptIn}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 ds-label text-background transition-all hover:bg-foreground/80"
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-ai py-3 ds-label text-background transition-all hover:opacity-90"
       >
         <Sparkles className="size-4" />
         Find my Thesis Twin
@@ -219,7 +219,7 @@ function MatchProposalScreen({
 
 // ── Shared space (active twin) ────────────────────────────────────────
 
-function SharedSpace({ twin }: { twin: Student }) {
+function SharedSpace({ twin, onCancel }: { twin: Student; onCancel: () => void }) {
   const [deadlines, setDeadlines] = useState<Deadline[]>(INITIAL_DEADLINES)
   const [updates, setUpdates] = useState<Update[]>(INITIAL_UPDATES)
   const [milestones, setMilestones] = useState<Milestone[]>(INITIAL_MILESTONES)
@@ -228,6 +228,7 @@ function SharedSpace({ twin }: { twin: Student }) {
   const [newDeadlineDate, setNewDeadlineDate] = useState('')
   const [addingDeadline, setAddingDeadline] = useState(false)
   const [tab, setTab] = useState<'updates' | 'deadlines' | 'milestones'>('updates')
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const toggleDeadline = (id: string) =>
     setDeadlines((ds) => ds.map((d) => d.id === id ? { ...d, done: !d.done } : d))
@@ -257,6 +258,56 @@ function SharedSpace({ twin }: { twin: Student }) {
 
   return (
     <div className="mx-auto max-w-xl">
+      {/* Cancel confirmation dialog */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+              onClick={() => setShowCancelConfirm(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+            >
+              <div className="flex flex-col items-center gap-3 px-6 py-6 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-secondary">
+                  <AlertTriangle className="size-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="ds-label text-foreground">End twin relationship?</p>
+                  <p className="ds-small mt-2 text-muted-foreground leading-relaxed">
+                    Your shared space with {twin.firstName} will be closed. You can find a new twin after.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 border-t border-border px-5 py-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 rounded-full border border-border py-2 ds-label text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Keep twin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowCancelConfirm(false); onCancel() }}
+                  className="flex-1 rounded-full bg-foreground py-2 ds-label text-background transition-colors hover:bg-foreground/80"
+                >
+                  End relationship
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Twin header */}
       <div className="mb-5 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background ds-label">
@@ -269,13 +320,24 @@ function SharedSpace({ twin }: { twin: Student }) {
           </p>
           <p className="ds-caption text-muted-foreground">Execution stage · {twin.degree.toUpperCase()}</p>
         </div>
-        <button
-          type="button"
-          className="ml-auto flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <MessageSquare className="size-3.5" />
-          Message
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <MessageSquare className="size-3.5" />
+            Message
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCancelConfirm(true)}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 ds-caption text-muted-foreground transition-colors hover:border-red-300 hover:text-red-500"
+            title="Find a new twin"
+          >
+            <RefreshCw className="size-3.5" />
+            Find new twin
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -480,7 +542,7 @@ export function ThesisTwin() {
         )}
         {phase === 'active' && (
           <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <SharedSpace twin={MY_TWIN} />
+            <SharedSpace twin={MY_TWIN} onCancel={() => setPhase('opt-in')} />
           </motion.div>
         )}
       </AnimatePresence>

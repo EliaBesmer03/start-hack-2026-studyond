@@ -99,7 +99,7 @@ function StageCelebration({
             <button
               type="button"
               onClick={() => { onDismiss(); onOpenCoPilot(copy.starterPrompt) }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 ds-label text-background transition-all hover:bg-foreground/80"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-ai px-4 py-3 ds-label text-background transition-all hover:opacity-90"
             >
               <Sparkles className="size-4" />
               Open Co-Pilot for {copy.next}
@@ -416,8 +416,8 @@ export function Dashboard() {
               onClick={() => { setChatOpen((o) => !o); if (!chatOpen) setChatStarterPrompt(null) }}
               className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 ds-caption font-medium transition-all duration-200 ${
                 chatOpen
-                  ? 'border-foreground bg-foreground text-background'
-                  : 'border-border bg-background text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                  ? 'border-ai bg-ai text-background'
+                  : 'border-ai/40 bg-background text-ai-solid hover:border-ai hover:text-ai-solid'
               }`}
               aria-label="Toggle Co-Pilot"
             >

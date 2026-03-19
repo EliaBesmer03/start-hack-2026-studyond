@@ -2,13 +2,14 @@
  * Feature: Interview Partners
  * Experts matched in SmartMatch appear pre-populated at the top.
  * Additional experts can be found via the 3-step guided flow.
+ * Expert cards are clickable and open a detail drawer.
  */
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, Building2, Check, Send,
-  Video, Mic, FileText, ChevronLeft, Sparkles,
+  Video, Mic, FileText, ChevronLeft, Sparkles, X, Mail,
 } from 'lucide-react'
 import { experts, companies, fields, byId, type Expert } from '@/data/mock'
 import { useThesisStore } from '@/stores/thesis-store'
@@ -59,6 +60,185 @@ Would you be open to a ${answers.format === 'async' ? 'short async Q&A (written)
 Best regards`
 }
 
+// ── Expert detail drawer ──────────────────────────────────────────────
+
+function ExpertDrawer({
+  expert,
+  answers,
+  onConnect,
+  sent,
+  onClose,
+}: {
+  expert: Expert
+  answers: Answers
+  onConnect: (id: string) => void
+  sent: boolean
+  onClose: () => void
+}) {
+  const [showMessage, setShowMessage] = useState(false)
+  const company = byId(companies, expert.companyId)
+  const expertFields = expert.fieldIds.map((fid) => byId(fields, fid)?.name ?? fid)
+  const message = buildOutreach(expert, answers)
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+      />
+
+      {/* Drawer */}
+      <motion.aside
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl"
+      >
+        {/* Header */}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-6 py-5">
+          <div className="flex items-start gap-4">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-foreground text-background ds-title-sm">
+              {expert.firstName[0]}{expert.lastName[0]}
+            </div>
+            <div>
+              <h2 className="ds-title-sm text-foreground">
+                {expert.firstName} {expert.lastName}
+              </h2>
+              <p className="ds-small mt-0.5 text-muted-foreground">{expert.title}</p>
+              {company && (
+                <p className="ds-caption mt-1 flex items-center gap-1 text-muted-foreground">
+                  <Building2 className="size-3" />
+                  {company.name}
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {expert.offerInterviews && (
+                  <span className="ds-caption rounded-full bg-secondary px-2.5 py-0.5 font-medium text-foreground">
+                    Open to interviews
+                  </span>
+                )}
+                {expertFields.slice(0, 3).map((f) => (
+                  <span key={f} className="ds-caption rounded-full bg-secondary px-2.5 py-0.5 text-muted-foreground">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-full border border-border p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
+          {/* About */}
+          {expert.about && (
+            <div className="border-b border-border px-6 py-5">
+              <p className="ds-label mb-2 text-foreground">About</p>
+              <p className="ds-small text-muted-foreground leading-relaxed">{expert.about}</p>
+            </div>
+          )}
+
+          {/* All fields */}
+          {expertFields.length > 0 && (
+            <div className="border-b border-border px-6 py-5">
+              <p className="ds-label mb-2 text-foreground">Research fields</p>
+              <div className="flex flex-wrap gap-1.5">
+                {expertFields.map((f) => (
+                  <span key={f} className="ds-caption rounded-full bg-secondary px-2.5 py-0.5 text-muted-foreground">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Outreach message */}
+          <div className="border-b border-border px-6 py-5">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="ds-label text-foreground">Suggested outreach message</p>
+              <button
+                type="button"
+                onClick={() => setShowMessage((o) => !o)}
+                className="ds-caption text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {showMessage ? 'Hide' : 'Preview'}
+              </button>
+            </div>
+            <AnimatePresence>
+              {showMessage && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
+                    <pre className="ds-small whitespace-pre-wrap font-sans text-foreground leading-relaxed">
+                      {message}
+                    </pre>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!showMessage && (
+              <p className="ds-small text-muted-foreground/60">
+                A personalised message is ready to send based on your research topic.
+              </p>
+            )}
+          </div>
+
+          {/* Contact */}
+          {company && (
+            <div className="px-6 py-5">
+              <p className="ds-label mb-2 text-foreground">Contact</p>
+              <a
+                href={`mailto:${expert.firstName.toLowerCase()}.${expert.lastName.toLowerCase()}@example.com`}
+                className="ds-small flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Mail className="size-3.5" />
+                {expert.firstName.toLowerCase()}.{expert.lastName.toLowerCase()}@{company.name.toLowerCase().replace(/\s/g, '')}.com
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Action bar */}
+        <div className="shrink-0 border-t border-border px-6 py-4">
+          {sent ? (
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+              <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-background">
+                <Check className="size-3" strokeWidth={2.5} />
+              </span>
+              <p className="ds-label text-foreground">Request sent</p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { onConnect(expert.id); onClose() }}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 ds-label text-background transition-colors hover:bg-foreground/80"
+            >
+              <Send className="size-4" />
+              Send interview request
+            </button>
+          )}
+        </div>
+      </motion.aside>
+    </>
+  )
+}
+
 // ── Question step component ───────────────────────────────────────────
 
 function QuestionStep({
@@ -94,10 +274,10 @@ function QuestionStep({
   )
 }
 
-// ── Expert card ───────────────────────────────────────────────────────
+// ── Expert card (compact, clickable) ─────────────────────────────────
 
 function ExpertCard({
-  expert, score, answers, onConnect, sent, preMatched,
+  expert, score, answers, onConnect, sent, preMatched, onOpen,
 }: {
   expert: Expert
   score: number
@@ -105,10 +285,9 @@ function ExpertCard({
   onConnect: (id: string) => void
   sent: boolean
   preMatched?: boolean
+  onOpen: (expert: Expert) => void
 }) {
-  const [showMessage, setShowMessage] = useState(false)
   const company = byId(companies, expert.companyId)
-  const message = buildOutreach(expert, answers)
   const expertFields = expert.fieldIds.slice(0, 2).map((fid) => byId(fields, fid)?.name ?? fid)
 
   if (sent) {
@@ -129,7 +308,8 @@ function ExpertCard({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-xl border border-border bg-background"
+      onClick={() => onOpen(expert)}
+      className="group cursor-pointer overflow-hidden rounded-xl border border-border bg-background transition-shadow duration-150 hover:border-foreground/20 hover:shadow-md"
     >
       <div className="flex items-start justify-between px-4 py-4">
         <div>
@@ -143,7 +323,7 @@ function ExpertCard({
               </span>
             )}
             {preMatched && (
-              <span className="rounded-full bg-secondary px-2 py-0.5 ds-badge font-medium text-foreground flex items-center gap-1">
+              <span className="rounded-full bg-ai px-2 py-0.5 ds-badge font-medium text-white flex items-center gap-1">
                 <Sparkles className="size-2.5" />
                 Matched
               </span>
@@ -155,9 +335,11 @@ function ExpertCard({
             {company?.name}
           </p>
         </div>
-        <span className="ds-badge rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
-          {score}% fit
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="ds-badge rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+            {score}% fit
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5 px-4 pb-3">
@@ -174,30 +356,16 @@ function ExpertCard({
         </p>
       )}
 
-      {showMessage && (
-        <div className="border-t border-border bg-secondary/30 px-4 py-3">
-          <p className="ds-caption mb-2 font-medium text-muted-foreground">Suggested outreach message</p>
-          <pre className="ds-small whitespace-pre-wrap font-sans text-foreground leading-relaxed">
-            {message}
-          </pre>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+      <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
+        <span className="ds-caption text-muted-foreground/50 transition-colors group-hover:text-muted-foreground">
+          View details →
+        </span>
         <button
           type="button"
-          onClick={() => setShowMessage((o) => !o)}
-          className="ds-caption flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          onClick={(e) => { e.stopPropagation(); onConnect(expert.id) }}
+          className="flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80"
         >
-          <FileText className="size-3" />
-          {showMessage ? 'Hide message' : 'See message'}
-        </button>
-        <button
-          type="button"
-          onClick={() => onConnect(expert.id)}
-          className="ml-auto flex items-center gap-1.5 rounded-full bg-foreground px-4 py-1.5 ds-label text-background transition-colors hover:bg-foreground/80"
-        >
-          <Send className="size-3.5" />
+          <Send className="size-3" />
           Send request
         </button>
       </div>
@@ -213,6 +381,7 @@ export function InterviewPartners() {
   const [answers, setAnswers] = useState<Answers>({ topic: '', expertise: '', format: null })
   const [results, setResults] = useState<{ expert: Expert; score: number }[] | null>(null)
   const [sent, setSent] = useState<Set<string>>(new Set())
+  const [openExpert, setOpenExpert] = useState<Expert | null>(null)
 
   // Experts pre-matched from SmartMatch
   const preMatchedExperts = acceptedExpertIds
@@ -247,6 +416,9 @@ export function InterviewPartners() {
 
   const defaultAnswers: Answers = { topic: 'thesis research', expertise: 'industry expertise', format: 'remote' }
 
+  // Find answers to use for the drawer (use user answers if available, otherwise defaults)
+  const drawerAnswers = answers.topic.length > 0 ? answers : defaultAnswers
+
   return (
     <div className="mx-auto max-w-xl">
       {/* Header */}
@@ -262,7 +434,7 @@ export function InterviewPartners() {
       {preMatchedExperts.length > 0 && (
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="size-3.5 text-muted-foreground" />
+            <Sparkles className="size-3.5 text-ai-solid" />
             <p className="ds-label text-foreground">From your Smart Match</p>
           </div>
           <div className="space-y-3">
@@ -275,6 +447,7 @@ export function InterviewPartners() {
                 onConnect={handleConnect}
                 sent={sent.has(expert.id)}
                 preMatched
+                onOpen={setOpenExpert}
               />
             ))}
           </div>
@@ -402,10 +575,24 @@ export function InterviewPartners() {
                   answers={answers}
                   onConnect={handleConnect}
                   sent={sent.has(expert.id)}
+                  onOpen={setOpenExpert}
                 />
               ))}
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Expert detail drawer */}
+      <AnimatePresence>
+        {openExpert && (
+          <ExpertDrawer
+            expert={openExpert}
+            answers={drawerAnswers}
+            onConnect={handleConnect}
+            sent={sent.has(openExpert.id)}
+            onClose={() => setOpenExpert(null)}
+          />
         )}
       </AnimatePresence>
     </div>
