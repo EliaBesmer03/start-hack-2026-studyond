@@ -122,7 +122,7 @@ export function JourneyMapSidebar({ activeFeature, onFeatureSelect, onReset, onS
           <button
             type="button"
             onClick={onShowBoard}
-            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 ds-label transition-colors hover:bg-secondary ${activeFeature === null ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}
+            className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 ds-label transition-colors hover:bg-secondary ${activeFeature === null ? 'bg-secondary text-foreground' : 'text-muted-foreground'}`}
           >
             <LayoutDashboard className="size-3.5 shrink-0" />
             Kanban Board

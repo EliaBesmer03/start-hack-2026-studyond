@@ -602,8 +602,8 @@ export function SmartMatch() {
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-lg py-2 ds-label capitalize transition-colors ${
-              tab === t ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 rounded-full py-2 ds-label capitalize transition-colors ${
+              tab === t ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {t === 'matches' ? `Matches (${activeCards.length})` : `Shortlisted (${shortlistedCards.length})`}

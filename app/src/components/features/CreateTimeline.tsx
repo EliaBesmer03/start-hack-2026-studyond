@@ -208,7 +208,7 @@ function GanttRow({
           return (
             <div
               key={entry.id}
-              className={`group absolute top-[4px] bottom-[4px] rounded-md border select-none cursor-grab active:cursor-grabbing overflow-hidden flex items-center ${meta.bg} ${meta.text} ${meta.border}`}
+              className={`group absolute top-[4px] bottom-[4px] rounded-sm border select-none cursor-grab active:cursor-grabbing overflow-hidden flex items-center ${meta.bg} ${meta.text} ${meta.border}`}
               style={{ left: `${left}%`, width: `${width}%`, minWidth: 4 }}
               onMouseDown={(e) => onMouseDownBlock(e, entry)}
               title={`${entry.label} · W${entry.week}–${entry.week + entry.duration - 1}`}
@@ -391,13 +391,13 @@ export function CreateTimeline() {
             onChange={(e) => setCustomLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addCustomItem()}
             placeholder="Add custom element…"
-            className="ds-caption min-w-0 flex-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
+            className="ds-caption min-w-0 flex-1 rounded-xl border border-border bg-secondary px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none"
           />
           <div className="relative">
             <select
               value={customCategory}
               onChange={(e) => setCustomCategory(e.target.value as Category)}
-              className="ds-caption appearance-none rounded-lg border border-border bg-secondary py-1.5 pl-3 pr-7 text-foreground focus:border-foreground/30 focus:outline-none"
+              className="ds-caption appearance-none rounded-xl border border-border bg-secondary py-1.5 pl-3 pr-7 text-foreground focus:border-foreground/30 focus:outline-none"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>{CATEGORY_META[cat].label}</option>
@@ -409,7 +409,7 @@ export function CreateTimeline() {
             type="button"
             onClick={addCustomItem}
             disabled={!customLabel.trim()}
-            className="flex items-center gap-1 rounded-lg border border-border bg-foreground px-3 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
+            className="flex items-center gap-1 rounded-full border border-border bg-foreground px-3 py-1.5 ds-caption text-background transition-colors hover:bg-foreground/80 disabled:opacity-40"
           >
             <Plus className="size-3" />
             Add
