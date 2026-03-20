@@ -16,6 +16,10 @@
 <a href="https://studyond.vercel.app">https://studyond.vercel.app</a>
 </p>
 
+<p align="center">
+<a href="https://youtu.be/7mozXEyADVA">Video Demo</a>
+</P>
+
 ---
 
 ## The Problem
