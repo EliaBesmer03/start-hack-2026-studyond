@@ -4,10 +4,6 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/slsp/(.*)",
-      "destination": "/api/slsp/$1"
-    },
-    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
