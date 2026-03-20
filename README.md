@@ -1,84 +1,109 @@
-# Studyond -- StartHack 2026
+<p align="center">
+  <img src="app/src/assets/thumbnail/studyond-thumbnail.png" alt="Studyond – Your thesis, guided" width="400" />
+</p>
 
-Welcome! This repository contains everything you need to work on the Studyond hackathon challenge.
+<h1 align="center">Studyond Thesis Journey</h1>
 
-## About Studyond
+<p align="center">
+  An AI-powered thesis companion that guides students from topic discovery to final submission — built at <strong>START Hack 2026</strong>.
+</p>
 
-**Studyond AG** is a Swiss startup (HSG spin-off, ETH startup) backed by Innosuisse. We operate a three-sided marketplace connecting **students**, **companies**, and **universities** around thesis topics, research projects, and talent sourcing.
+<p align="center">
+  <a href="https://studyond.com">studyond.com</a>
+</p>
 
-**Website:** [studyond.com](https://studyond.com)
-
-## The Challenge
-
-Design and prototype an **AI-powered thesis journey** -- a modular, adaptive flow that guides students through their entire thesis process using Studyond's existing ecosystem (topics, supervisors, companies, experts, mentors, AI matching).
-
-Full brief: [`context/Challenge Brief.md`](context/Challenge%20Brief.md)
-
-## Studyond Brain
-
-The `context/` folder is the **Studyond Brain** -- an interconnected knowledge graph of atomic notes about Studyond. Each note covers one concept and links to related notes via `[[wiki-links]]`.
-
-**To explore:** Open the `context/` folder in Obsidian and use graph view, or start with [`Studyond Brain.md`](context/Studyond%20Brain.md).
-
-**Key entry points:**
-
-| Note                                                           | What's inside                                  |
-| -------------------------------------------------------------- | ---------------------------------------------- |
-| [`Studyond Brain.md`](context/Studyond%20Brain.md)             | Map of Content -- start here                   |
-| [`Challenge Brief.md`](context/Challenge%20Brief.md)           | The hackathon brief, what to build             |
-| [`Opportunity Space.md`](context/Opportunity%20Space.md)       | What doesn't exist yet -- where to build       |
-| [`Thesis Journey.md`](context/Thesis%20Journey.md)             | The 5-stage thesis process and building blocks |
-| [`Studyond.md`](context/Studyond.md)                           | Company overview                               |
-| [`Platform Overview.md`](context/Platform%20Overview.md)       | Current features and capabilities              |
-| [`Data Model.md`](context/Data%20Model.md)                     | Entities and relationships                     |
-| [`Students.md`](context/Students.md)                           | Primary audience profile                       |
-| [`Editorial Minimalism.md`](context/Editorial%20Minimalism.md) | Design philosophy                              |
-
-## Brand & UI
-
-The `brand/` folder contains assets and references for building on-brand interfaces:
-
-Start with [`brand/README.md`](brand/README.md) for an overview, then grab what you need:
-
-| File                                               | What's inside                                    |
-| -------------------------------------------------- | ------------------------------------------------ |
-| [`setup.md`](brand/setup.md)                       | Tech stack, install commands, shadcn config      |
-| [`colors.md`](brand/colors.md)                     | Copy-pasteable CSS variables (light + dark mode) |
-| [`typography.md`](brand/typography.md)             | Font stack, type scale classes                   |
-| [`components.md`](brand/components.md)             | Layout, components, icons, animation             |
-| [`ai-integration.md`](brand/ai-integration.md)     | Vercel AI SDK setup, AI visual style             |
-| [`image-generation.md`](brand/image-generation.md) | Generate brand-consistent images with Gemini     |
-| [`studyond.svg`](brand/studyond.svg)               | Logo                                             |
-
-## Using the Brain with AI Tools
-
-The atomic notes are designed for LLM context. Each note is self-contained but richly linked:
-
-- **Obsidian:** Open `context/` as a vault. Use graph view to explore connections.
-- **Claude Code / Cursor / Windsurf:** Open this repo -- your AI assistant can read and navigate the notes via wiki-links
-- **ChatGPT / Claude chat:** Copy-paste individual notes (they're small and focused) or start with `Studyond Brain.md`
-- **RAG / custom setup:** Each note is a clean, atomic chunk with consistent frontmatter tags for filtering
-- **MCP server:** Expose the brain as a local tool server for any MCP-compatible client (see below)
-
-### Optional: Expose as a local MCP server
-
-If you want your LLM to query the Studyond Brain through [Model Context Protocol](https://modelcontextprotocol.io), the fastest way is the official filesystem server. Add this to your MCP client config (e.g. `claude_desktop_config.json` or `.claude/settings.json`):
-
-```json
-{
-  "mcpServers": {
-    "studyond-brain": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./context"]
-    }
-  }
-}
-```
-
-This gives your LLM `read_file`, `list_directory`, and `search_files` tools scoped to the `context/` folder. It can navigate `[[wiki-links]]` by reading referenced notes.
-
-For a richer experience, you could build a small custom MCP server (~100 lines) that parses the wiki-links and frontmatter tags, exposing tools like `get_note(name)`, `get_linked_notes(name)`, or `list_by_tag(tag)` -- letting the LLM traverse the knowledge graph intentionally rather than guessing filenames.
+<p align="center">
+<a href="https://studyond.vercel.app">https://studyond.vercel.app</a>
+</p>
 
 ---
 
-Good luck! Build something amazing.
+## The Problem
+
+Writing a thesis is one of the most complex tasks in a student's academic career. Students struggle with choosing a topic, finding supervisors, planning milestones, conducting research, and staying on track — often with minimal guidance and no structured process.
+
+## Our Solution
+
+A modular, stage-based web app that walks students through their entire thesis journey with an AI Co-Pilot at their side. The platform connects Studyond's marketplace of topics, supervisors, and companies into one guided experience.
+
+### Features
+
+| Stage | Feature | Description |
+|-------|---------|-------------|
+| **Orientation** | Profile Setup | Capture field, degree, university, and interests |
+| | Intelligence Survey | Personality & strengths mapping with spider-web visualization |
+| **Topic & Supervisor** | Topic Explorer | Browse and bookmark thesis topics with field filtering |
+| | Supervisor Search | Search professors, view past projects, shortlist candidates |
+| | Smart Match | AI-curated topic + supervisor + company combos |
+| | Final Decision | Lock in your thesis trio before moving forward |
+| **Planning** | Timeline Builder | Interactive drag-to-create milestone timeline |
+| | Planning Co-Pilot | AI assistant for proposals, methodology, and registration |
+| **Execution** | Literature Search | Search Swiss academic libraries (SLSP/swisscovery) in real-time |
+| | Interview Partners | Find domain experts, record & transcribe interviews with AI |
+| | Thesis Twin | 1:1 peer matching for mutual accountability |
+| | Analysis Co-Pilot | AI guidance for data collection, methods, and findings |
+| **Writing** | Draft Reader | Request expert/alumni feedback on chapters |
+| | Thesis Alumni | Post-thesis profile for future student discovery |
+
+### AI Co-Pilot
+
+The Co-Pilot is a context-aware AI assistant (Claude) that adapts across three modes:
+
+- **Topic Mode** — Research advisor for exploration and narrowing down
+- **Planning Mode** — Project manager for structure and milestones
+- **Analysis Mode** — Methods expert for data and interpretation
+
+It learns from every interaction: interests, decisions, constraints, and progress are automatically extracted and carried across all features and conversations.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | React 19 + TypeScript |
+| Build | Vite 8 |
+| Styling | Tailwind CSS 4 + Framer Motion |
+| Components | Radix UI + Lucide Icons |
+| AI | Anthropic Claude (via AI SDK) |
+| Transcription | AssemblyAI |
+| State | Zustand (persisted to localStorage) |
+| Library Search | SLSP SRU API (swisscovery) |
+| Deployment | Vercel |
+
+## Architecture
+
+```
+app/src/
+├── components/
+│   ├── features/          14 feature modules (one per thesis step)
+│   ├── ui/                Reusable UI primitives
+│   ├── Dashboard.tsx      Main app shell with sidebar + board + Co-Pilot
+│   ├── CoPilotChat.tsx    Streaming AI chat with context injection
+│   └── ThesisBoard.tsx    Kanban-style task tracker
+├── stores/
+│   └── thesis-store.ts    Zustand store (profile, tasks, knowledge, decisions)
+├── lib/
+│   └── slsp.ts            SLSP library catalog search client
+├── data/
+│   ├── mock.ts            Topics, supervisors, companies, experts
+│   └── mockContext.ts     Co-Pilot system prompts
+└── api/
+    └── slsp/              Vercel serverless proxy for SLSP API
+```
+
+
+## Team
+
+| Name |
+|------|
+| **Nela Brack** |
+| **Karla Ruggaber** |
+| **Thierry Suhner** |
+| **Elia Besmer** |
+
+Built with caffeine and conviction at START Hack 2026, St. Gallen.
+
+---
+
+<p align="center">
+  <strong>Studyond</strong> — Your thesis, guided.
+</p>
