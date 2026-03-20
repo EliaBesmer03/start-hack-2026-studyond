@@ -104,7 +104,7 @@ app/src/
 | **Thierry Suhner** |
 | **Elia Besmer** |
 
-Built with caffeine and conviction at START Hack 18.3. – 20.3.2026, St. Gallen.
+Built with caffeine and conviction at START Hack 18.3.2026 – 20.3.2026, St. Gallen.
 
 ---
 
