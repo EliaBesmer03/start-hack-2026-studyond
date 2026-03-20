@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-<a href="https://start-hack-2026-studyond-3w4kn9qy0-elias-projects-e7fe91c3.vercel.app>https://start-hack-2026-studyond-3w4kn9qy0-elias-projects-e7fe91c3.vercel.app</a>
+<a href="https://start-hack-2026-studyond-3w4kn9qy0-elias-projects-e7fe91c3.vercel.app">https://start-hack-2026-studyond-3w4kn9qy0-elias-projects-e7fe91c3.vercel.app</a>
 </p>
 
 <p align="center">
