@@ -66,46 +66,9 @@ A persistent left-panel navigation showing all five stages and their tasks. Prov
 ### Starting Tutorial
 A step-by-step onboarding overlay that runs once per new user when they first log in. It highlights key UI elements in sequence, explains each feature, and walks the student into the Timeline view before releasing them to explore independently.
 
----
+### Thesis Twin
+A Thesis Twin is a single peer (another student) at a similar academic stage and in a related field, who students check in with throughout their thesis journey for mutual accountability. Unlike group chats, it's a private, one-on-one pairing where they can set shared deadlines, track progress, and celebrate milestones together 
 
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | React 19 + TypeScript |
-| Build Tool | Vite |
-| Styling | Tailwind CSS v4 |
-| UI Components | shadcn/ui (new-york style) + Radix UI |
-| State Management | Zustand (localStorage persistence) |
-| Forms & Validation | React Hook Form + Zod |
-| Animations | Framer Motion |
-| Icons | Lucide React |
-| AI Model | Anthropic Claude Haiku 4.5 |
-| Deployment | Vercel |
-
----
-
-## Data Model
-
-**Mock data included in the repository:**
-- **185+ companies** posting thesis topics
-- **7,500+ thesis topics** with employment types (internship, working student, graduate, direct entry)
-- **Supervisors** — professors with research field alignment
-- **Experts** — industry professionals available for interviews
-- **Students** — example profiles with skills and objectives
-- **Fields & Universities** — research domains and degree programs
-
-**Persistent app state (Zustand):**
-- `profile` — student stage, name, email, onboarding status
-- `tasks` — per-stage task list with completion tracking
-- `chatHistories` — separate chat history per co-pilot mode
-- `knowledgeFacts` — extracted insights from all conversations
-- `finalDecision` — confirmed topic, supervisor, and company
-- `timeline` — milestone list with week offsets and completion
-- `savedLiterature` — bibliography with structured metadata
-- `favouriteTopics`, `shortlistedSupervisors`, `acceptedExperts` — bookmarked items
-
-All state persists to localStorage — students can close and reopen the app at any time without losing progress.
 
 ---
 
@@ -117,17 +80,6 @@ All state persists to localStorage — students can close and reopen the app at 
 4. **Milestone celebration** — Completing a stage triggers an animated celebration and unlocks the next stage.
 5. **Editorial minimalism** — Clean, focused UI with no visual clutter. Only what the student needs, when they need it.
 
----
 
-## Project Context
-
-This platform was built for **START Hack 2026**, a hackathon organized by the HSG student community in St. Gallen, Switzerland. The challenge was issued by **Studyond AG** — a Swiss startup and HSG spin-off operating a three-sided marketplace connecting students, companies, and universities around thesis projects.
-
-The team built a full production-quality prototype in hackathon conditions, including:
-- A complete AI co-pilot with streaming responses and dynamic context building
-- Smart matching across 7,500+ topics and 185+ companies
-- A structured 5-stage journey with task management, timeline planning, and peer pairing
-- A one-time onboarding tutorial personalized per user
-- Full persistence across sessions via localStorage
 
 **Tagline: "The Thesis Journey, Reconnected."**
